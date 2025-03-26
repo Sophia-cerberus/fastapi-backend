@@ -6,7 +6,6 @@ from pydantic import BaseModel
 from app import crud
 from app.api.deps import SessionDep
 from app.models import (
-    User,
     UserCreate,
     UserPublic,
 )
@@ -31,7 +30,7 @@ async def create_user(user_in: PrivateUserCreate, session: SessionDep) -> Any:
     user = await crud.get_user_by_email(session=session, email=user_in.email)
     if user:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_409_CONFLICT,
             detail="The user with this email does not exist in the system."
         )
     

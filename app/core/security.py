@@ -14,6 +14,7 @@ ALGORITHM = "HS256"
 
 
 class TokenGenerator(ABC):
+    
     @abstractmethod
     def access_token(self) -> str:
         raise NotImplementedError("Method not implemented!")

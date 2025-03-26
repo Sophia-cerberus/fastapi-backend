@@ -1,44 +1,39 @@
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, status
-from sqlmodel import func, select
+from fastapi import APIRouter, HTTPException, status, Security
+from sqlmodel import select
 
 from app.api.deps import CurrentUser, SessionDep
-from app.models import Item, ItemCreate, ItemPublic, ItemsPublic, ItemUpdate, Message
+from app.models import Item, ItemCreate, ItemPublic, ItemUpdate, Message
+from app.core.filters import ItemFilter
+
+from fastapi_pagination.ext.sqlmodel import paginate
+from fastapi_pagination import Page
+
+from fastapi_filter import FilterDepends
+
 
 router = APIRouter(prefix="/items", tags=["items"])
 
 
-@router.get("/", response_model=ItemsPublic)
+@router.get("/", response_model=Page[ItemPublic])
 async def read_items(
-    session: SessionDep, current_user: CurrentUser, skip: int = 0, limit: int = 100
+    session: SessionDep, current_user: CurrentUser, item_filter: ItemFilter = FilterDepends(ItemFilter)
 ) -> Any:
     """
     Retrieve items.
     """
 
-    if current_user.is_superuser:
-        count_statement = select(func.count()).select_from(Item)
-        count = await session.scalar(count_statement)
-        statement = select(Item).offset(skip).limit(limit)
-        items = (await session.scalars(statement)).all()
-    else:
-        count_statement = (
-            select(func.count())
-            .select_from(Item)
-            .where(Item.owner_id == current_user.id)
-        )
-        count = await session.scalar(count_statement)
-        statement = (
-            select(Item)
-            .where(Item.owner_id == current_user.id)
-            .offset(skip)
-            .limit(limit)
-        )
-        items = (await session.scalars(statement)).all()
-    
-    return ItemsPublic(data=items, count=count)
+    statement = select(Item) 
+
+    if not current_user.is_superuser:
+        statement = statement.where(Item.owner_id == current_user.id)
+
+    statement = item_filter.filter(statement)
+    statement = item_filter.sort(statement)
+    page_items = await paginate(session, statement)
+    return page_items
 
 
 @router.get("/{id}", response_model=ItemPublic)

@@ -1,9 +1,9 @@
 from datetime import datetime, timezone
-from typing import Annotated, Any
+from typing import Annotated, Any, Optional
 
 import jwt
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, Depends, HTTPException, status, Security
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic_core import ValidationError
 
@@ -30,7 +30,6 @@ from app.utils import (
 
 
 router = APIRouter(tags=["login"])
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
 @router.post("/login/token")
@@ -40,6 +39,7 @@ async def login_token(
     """
     OAuth2 compatible token login, get an access token for future requests
     """
+
     user = await crud.authenticate(
         session=session, email=form_data.username, password=form_data.password
     )

@@ -2,15 +2,14 @@ import sentry_sdk
 
 from fastapi import FastAPI
 from fastapi.routing import APIRoute
-from fastapi import Request, status
-from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError, HTTPException
 
 from starlette.middleware.cors import CORSMiddleware
 
 from app.api.main import api_router
 from app.core.config import settings
-
+from app.core.exceptions import register_exception_handlers
+from app.core.middleware import register_middleware
+from fastapi_pagination import add_pagination as register_pagination
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
@@ -19,6 +18,7 @@ def custom_generate_unique_id(route: APIRoute) -> str:
 
 if settings.SENTRY_DSN and settings.ENVIRONMENT != "local":
     sentry_sdk.init(dsn=str(settings.SENTRY_DSN), enable_tracing=True)
+
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -36,46 +36,8 @@ if settings.all_cors_origins:
         allow_headers=["*"],
     )
 
-
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    return JSONResponse(
-        status_code=status.HTTP_200_OK,
-        content={
-            "status": False,
-            "code": 500,
-            "message": f"Internal Server Error: {str(exc)}",
-            "data": None  
-        }
-     )
-
-
-@app.exception_handler(RequestValidationError)  
-async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
-     return JSONResponse(
-         status_code=status.HTTP_200_OK,
-         content={
-             "status": False,
-             "code": 422,
-             "message": f"Validation Error", 
-             "data": exc.errors()
-        },   
-    )
-
-
-@app.exception_handler(HTTPException)  
-async def validation_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
-     return JSONResponse(
-         status_code=status.HTTP_200_OK,
-         content={
-             "status": False,
-             "code": exc.status_code,
-             "message": str(exc.detail), 
-             "data": None
-        },   
-    )
-
+register_exception_handlers(app)
+register_middleware(app)
+register_pagination(app)
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
-
-

@@ -51,11 +51,6 @@ class UserPublic(UserBase):
     id: uuid.UUID
 
 
-class UsersPublic(SQLModel):
-    data: list[UserPublic]
-    count: int
-
-
 # Shared properties
 class ItemBase(SQLModel):
     title: str = Field(min_length=1, max_length=255)
@@ -87,27 +82,19 @@ class ItemPublic(ItemBase):
     owner_id: uuid.UUID
 
 
-class ItemsPublic(SQLModel):
-    data: list[ItemPublic]
-    count: int
-
-
 # Generic message
 class Message(SQLModel):
     message: str
-    
-
-# JSON payload containing access token & refresh token
-class Token(SQLModel):
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"
 
 
 # JSON payload containing access token
 class AccessToken(SQLModel):
     access_token: str
     token_type: str = "bearer"
+
+# JSON payload containing access token & refresh token
+class Token(AccessToken):
+    refresh_token: str
 
 
 # Contents of JWT token

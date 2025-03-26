@@ -2,6 +2,8 @@ import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
+
+from fastapi_filter import FilterDepends
 from sqlmodel import col, delete, func, select
 
 from app import crud
@@ -11,6 +13,7 @@ from app.api.deps import (
     get_current_active_superuser,
 )
 from app.core.config import settings
+from app.core.filters.users import UserFilter
 from app.core.security import get_password_hash, verify_password
 from app.models import (
     Item,
@@ -19,32 +22,32 @@ from app.models import (
     UserCreate,
     UserPublic,
     UserRegister,
-    UsersPublic,
     UserUpdate,
     UserUpdateMe,
     Message
 )
 from app.utils import generate_new_account_email, send_email
+from fastapi_pagination.ext.sqlmodel import paginate
+from fastapi_pagination import Page
 
-
-router = APIRouter(prefix="/users", tags=["users"])
+router = APIRouter(
+    prefix="/users", tags=["users"], 
+)
 
 @router.get(
     "/",
     dependencies=[Depends(get_current_active_superuser)],
-    response_model=UsersPublic,
+    response_model=Page[UserPublic]
 )
-async def read_users(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
+async def read_users(session: SessionDep, user_filter: UserFilter = FilterDepends(UserFilter)) -> Any:
     """
     Retrieve users.
     """
 
-    count_statement = select(func.count()).select_from(User)
-    count = await session.scalar(count_statement)
-
-    statement = select(User).offset(skip).limit(limit)
-    users = (await session.scalars(statement)).all()
-    return UsersPublic(data=users, count=count)
+    statement = select(User).join(User.items, isouter=True, full=True)
+    statement = user_filter.filter(statement)
+    statement = user_filter.sort(statement)
+    return await paginate(session, statement)
 
 
 @router.post(
@@ -57,7 +60,7 @@ async def create_user(*, session: SessionDep, user_in: UserCreate) -> Any:
     user = await crud.get_user_by_email(session=session, email=user_in.email)
     if user:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_409_CONFLICT,
             detail="The user with this email already exists in the system."
         )
 
@@ -110,7 +113,7 @@ async def update_password_me(
     
     if body.current_password == body.new_password:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, 
+            status_code=status.HTTP_409_CONFLICT, 
             detail="New password cannot be the same as the current one"
         )
 
