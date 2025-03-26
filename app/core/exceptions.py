@@ -8,6 +8,7 @@ from fastapi.exceptions import (
 from pydantic_core._pydantic_core import ValidationError
 from sqlalchemy.exc import ArgumentError
 
+
 async def request_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
      return JSONResponse(
          status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -37,6 +38,7 @@ async def response_exception_handler(request: Request, exc: ResponseValidationEr
         },   
     )
 
+
 async def validate_exception_handler(request: Request, exc: ValidationError) -> JSONResponse:
      return JSONResponse(
          status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -63,6 +65,7 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
         },   
     )
 
+
 async def websocket_exception_handler(request: Request, exc: WebSocketException) -> JSONResponse:
      return JSONResponse(
          status_code=exc.code,
@@ -74,6 +77,7 @@ async def websocket_exception_handler(request: Request, exc: WebSocketException)
         },   
     )
 
+
 async def argument_exception_handler(request: Request, exc: ArgumentError) -> JSONResponse:
      return JSONResponse(
          status_code=400,
@@ -84,8 +88,6 @@ async def argument_exception_handler(request: Request, exc: ArgumentError) -> JS
             "errors": str(exc)
         },   
     )
-
-
 
 
 async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:

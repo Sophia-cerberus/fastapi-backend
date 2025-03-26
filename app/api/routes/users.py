@@ -1,7 +1,7 @@
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 
 from fastapi_filter import FilterDepends
 from sqlmodel import col, delete, func, select
@@ -44,7 +44,7 @@ async def read_users(session: SessionDep, user_filter: UserFilter = FilterDepend
     Retrieve users.
     """
 
-    statement = select(User).join(User.items, isouter=True, full=True)
+    statement = select(User)
     statement = user_filter.filter(statement)
     statement = user_filter.sort(statement)
     return await paginate(session, statement)

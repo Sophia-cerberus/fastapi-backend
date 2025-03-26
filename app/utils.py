@@ -5,6 +5,8 @@ from pathlib import Path
 from typing import Any
 
 import emails  # type: ignore
+# import aiosmtplib
+
 import jwt
 from jinja2 import Template
 from jwt.exceptions import InvalidTokenError
@@ -51,6 +53,7 @@ def send_email(
         smtp_options["user"] = settings.SMTP_USER
     if settings.SMTP_PASSWORD:
         smtp_options["password"] = settings.SMTP_PASSWORD
+    
     response = message.send(to=email_to, smtp=smtp_options)
     logger.info(f"send email result: {response}")
 

@@ -2,6 +2,7 @@ import sentry_sdk
 
 from fastapi import FastAPI
 from fastapi.routing import APIRoute
+from fastapi.staticfiles import StaticFiles
 
 from starlette.middleware.cors import CORSMiddleware
 
@@ -39,5 +40,7 @@ if settings.all_cors_origins:
 register_exception_handlers(app)
 register_middleware(app)
 register_pagination(app)
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
