@@ -32,7 +32,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 @router.get(
     "/",
     dependencies=[Depends(get_current_active_superuser)],
-    response_model=UserPublic,
+    response_model=UsersPublic,
 )
 async def read_users(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
     """
@@ -44,7 +44,6 @@ async def read_users(session: SessionDep, skip: int = 0, limit: int = 100) -> An
 
     statement = select(User).offset(skip).limit(limit)
     users = (await session.scalars(statement)).all()
-    
     return UsersPublic(data=users, count=count)
 
 
@@ -57,9 +56,9 @@ async def create_user(*, session: SessionDep, user_in: UserCreate) -> Any:
     """
     user = await crud.get_user_by_email(session=session, email=user_in.email)
     if user:
-        return HTTPException(
+        raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            message="The user with this email already exists in the system."
+            detail="The user with this email already exists in the system."
         )
 
     user = await crud.create_user(session=session, user_create=user_in)
@@ -86,9 +85,9 @@ async def update_user_me(
     if user_in.email:
         existing_user = await crud.get_user_by_email(session=session, email=user_in.email)
         if existing_user and existing_user.id != current_user.id:
-            return HTTPException(
+            raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT, 
-                message="User with this email already exists"
+                detail="User with this email already exists"
             )
 
     user_data = user_in.model_dump(exclude_unset=True)
@@ -107,12 +106,12 @@ async def update_password_me(
     Update own password.
     """
     if not verify_password(body.current_password, current_user.hashed_password):
-        return HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, message="Incorrect password")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password")
     
     if body.current_password == body.new_password:
-        return HTTPException(
+        raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, 
-            message="New password cannot be the same as the current one"
+            detail="New password cannot be the same as the current one"
         )
 
     hashed_password = get_password_hash(body.new_password)
@@ -136,9 +135,9 @@ async def delete_user_me(session: SessionDep, current_user: CurrentUser) -> Any:
     Delete own user.
     """
     if current_user.is_superuser:
-        return HTTPException(
+        raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, 
-            message="Super users are not allowed to delete themselves"
+            detail="Super users are not allowed to delete themselves"
         )
 
     await session.delete(current_user)
@@ -153,9 +152,9 @@ async def register_user(session: SessionDep, user_in: UserRegister) -> Any:
     """
     user = await crud.get_user_by_email(session=session, email=user_in.email)
     if user:
-        return HTTPException(
+        raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, 
-            message="The user with this email already exists in the system"
+            detail="The user with this email already exists in the system"
         )
 
     user_create = UserCreate.model_validate(user_in)
@@ -174,9 +173,9 @@ async def read_user_by_id(
     if user == current_user:
         return user
     if not current_user.is_superuser:
-        return HTTPException(
+        raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, 
-            message="The user doesn't have enough privileges"
+            detail="The user doesn't have enough privileges"
         )
 
     return user
@@ -197,22 +196,22 @@ async def update_user(
     Update a user.
     """
 
-    db_user = await session.get(User, user_id)
-    if not db_user:
-        return HTTPException(
+    user = await session.get(User, user_id)
+    if not user:
+        raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, 
-            message="The user with this id does not exist in the system"
+            detail="The user with this id does not exist in the system"
         )
     
     if user_in.email:
         existing_user = await crud.get_user_by_email(session=session, email=user_in.email)
         if existing_user and existing_user.id != user_id:
-            return HTTPException(
+            raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT, 
-                message="User with this email already exists"
+                detail="User with this email already exists"
             )
 
-    user = await crud.update_user(session=session, db_user=db_user, user_in=user_in)
+    user = await crud.update_user(session=session, db_user=user, user_in=user_in)
     return user
 
 
@@ -225,14 +224,14 @@ async def delete_user(
     """
     user = await session.get(User, user_id)
     if not user:
-        return HTTPException(
+        raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, 
-            message="User not found"
+            detail="User not found"
         )
     if user == current_user:
-        return HTTPException(
+        raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, 
-            message="Super users are not allowed to delete themselves"
+            detail="Super users are not allowed to delete themselves"
         )
     statement = delete(Item).where(col(Item.owner_id) == user_id)
     await session.execute(statement)  # type: ignore
