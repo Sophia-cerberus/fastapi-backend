@@ -15,8 +15,6 @@ from app.models import TokenPayload, User
 
 reusable_oauth2 = OAuth2PasswordBearer(
     tokenUrl=f"{settings.API_V1_STR}/login/token",
-    # authorizationUrl=f"{settings.API_V1_STR}/oauth/authorize",
-    # refreshUrl=f"{settings.API_V1_STR}/oauth/refresh-token"
 )
 
 
@@ -35,7 +33,7 @@ async def get_current_user(session: SessionDep, token: TokenDep) -> User:
             token, settings.SECRET_KEY, algorithms=[security.ALGORITHM]
         )
         token_data = TokenPayload(**payload)
-    except (InvalidTokenError, ValidationError):
+    except (InvalidTokenError, ValidationError) as e:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Could not validate credentials",

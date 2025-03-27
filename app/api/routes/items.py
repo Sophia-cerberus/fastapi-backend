@@ -6,12 +6,13 @@ from sqlmodel import select
 
 from app.api.deps import CurrentUser, SessionDep
 from app.models import Item, ItemCreate, ItemPublic, ItemUpdate, Message
-from app.core.filters import ItemFilter
 
 from fastapi_pagination.ext.sqlmodel import paginate
-from fastapi_pagination import Page
+from fastapi_pagination.links import Page
 
 from fastapi_filter import FilterDepends
+
+from ..filters import ItemFilter
 
 
 router = APIRouter(prefix="/items", tags=["items"])

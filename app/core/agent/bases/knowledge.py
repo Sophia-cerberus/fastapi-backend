@@ -2,6 +2,7 @@ from typing import List, Dict, Any, Optional
 from abc import ABC, abstractmethod 
 from langchain.schema.document import Document 
 
+
 class KnowledgeManager(ABC):
     """Agent知识管理基础类"""
    

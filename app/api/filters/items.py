@@ -6,9 +6,7 @@ from fastapi_filter.contrib.sqlalchemy import Filter
 
 
 class ItemFilter(Filter):
-    title: Optional[str] = None
     title__ilike: Optional[str] = None
-    description: Optional[str] = None
     description__ilike: Optional[str] = None
     order_by: Optional[list[str]] = None
     search: Optional[str] = None

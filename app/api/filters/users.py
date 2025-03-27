@@ -24,4 +24,4 @@ class UserFilter(Filter):
         model = User
         ordering_field_name = "order_by"
         search_field_name = "search"
-        search_model_fields = ["email", "is_active", "is_superuser", "full_name"]
+        search_model_fields = ["email", "full_name"]

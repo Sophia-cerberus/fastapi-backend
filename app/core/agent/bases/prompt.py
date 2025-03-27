@@ -2,6 +2,7 @@ from typing import Dict, List, Optional, Union
 from dataclasses import dataclass, asdict
 import json
 
+
 @dataclass
 class Message:
     """单条消息数据结构"""
@@ -12,6 +13,7 @@ class Message:
     def to_dict(self) -> Dict:
         """转换为字典格式"""
         return asdict(self)
+
 
 class Prompt:
     """

@@ -1,9 +1,8 @@
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status
 
-from fastapi_filter import FilterDepends
 from sqlmodel import col, delete, func, select
 
 from app import crud
@@ -13,7 +12,6 @@ from app.api.deps import (
     get_current_active_superuser,
 )
 from app.core.config import settings
-from app.core.filters.users import UserFilter
 from app.core.security import get_password_hash, verify_password
 from app.models import (
     Item,
@@ -28,7 +26,12 @@ from app.models import (
 )
 from app.utils import generate_new_account_email, send_email
 from fastapi_pagination.ext.sqlmodel import paginate
-from fastapi_pagination import Page
+from fastapi_pagination.links import Page
+
+from fastapi_filter import FilterDepends
+
+from ..filters import UserFilter
+
 
 router = APIRouter(
     prefix="/users", tags=["users"], 
