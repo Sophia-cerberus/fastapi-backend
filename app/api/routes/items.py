@@ -1,7 +1,7 @@
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, status, Security
+from fastapi import APIRouter, HTTPException, status
 from sqlmodel import select
 
 from app.api.deps import CurrentUser, SessionDep

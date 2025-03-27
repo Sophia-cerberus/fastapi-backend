@@ -1,7 +1,8 @@
 from sqlalchemy.ext.asyncio.engine import AsyncEngine
-from sqlmodel import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine
+
+from sqlmodel import select
 
 from app import crud
 from app.core.config import settings
@@ -13,7 +14,7 @@ engine: AsyncEngine = create_async_engine(str(settings.SQLALCHEMY_DATABASE_URI))
 # make sure all SQLModel models are imported (app.models) before initializing DB
 # otherwise, SQLModel might fail to initialize relationships properly
 # for more details: https://github.com/fastapi/full-stack-fastapi-template/issues/28
-
+        
 
 async def init_db(session: AsyncSession) -> None:
     # Tables should be created with Alembic migrations

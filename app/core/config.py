@@ -118,6 +118,8 @@ class Settings(BaseSettings):
         )
 
         return self
+    
+    MODEL_PROVIDER_ENCRYPTION_KEY: str = ""
 
 
 settings = Settings()  # type: ignore

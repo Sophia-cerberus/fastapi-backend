@@ -48,7 +48,7 @@ async def login_token(
     elif not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Inactive user")
 
-    token = security.create_token(user.id)
+    token = security.generate_token(user.id)
 
     return Token(
         access_token=token.access_token(), 
