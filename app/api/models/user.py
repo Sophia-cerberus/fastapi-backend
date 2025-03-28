@@ -38,14 +38,22 @@ class UpdatePassword(SQLModel):
     new_password: str = Field(min_length=8, max_length=40)
 
 
+class UpdateLanguageMe(SQLModel):
+    language: str = Field(default="en-US")
+
 
 # Database model, database table inferred from class name
 class User(UserBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     hashed_password: str
-    items: list["Item"] = Relationship(back_populates="owner", cascade_delete=True) # type: ignore
+    teams: list["Team"] = Relationship(back_populates="owner") # type: ignore
+    skills: list["Skill"] = Relationship(back_populates="owner") # type: ignore
+    uploads: list["Upload"] = Relationship(back_populates="owner") # type: ignore
+    graphs: list["Graph"] = Relationship(back_populates="owner") # type: ignore
+    subgraphs: list["Subgraph"] = Relationship(back_populates="owner") # type: ignore
+    language: str = Field(default="en-US")
 
-
+    
 # Properties to return via API, id is always required
 class UserPublic(UserBase):
     id: uuid.UUID

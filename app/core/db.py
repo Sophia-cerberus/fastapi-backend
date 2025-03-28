@@ -6,7 +6,7 @@ from sqlmodel import select
 
 from app import crud
 from app.core.config import settings
-from app.models import User, UserCreate
+from app.api.models.user import User, UserCreate
 
 engine: AsyncEngine = create_async_engine(str(settings.SQLALCHEMY_DATABASE_URI))
 

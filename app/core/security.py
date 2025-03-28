@@ -87,13 +87,6 @@ class SecurityManager:
             token_generator = JWTTokenGenerator(payload, ALGORITHM)
         return token_generator
     
-    def verify_token(self, token: str) -> dict[str, Any]:
-        """验证JWT令牌并返回有效负载"""
-        try:
-            return jwt.decode(token, self.secret_key, algorithms=[ALGORITHM])
-        except jwt.PyJWTError as e:
-            raise ValueError("Invalid token") from e
-
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
         """验证密码"""
         return self.pwd_context.verify(plain_password, hashed_password)
@@ -129,7 +122,6 @@ class SecurityManager:
 # 创建单例实例
 security_manager = SecurityManager()
 
-verify_token = security_manager.verify_token
 generate_token = security_manager.create_token
 verify_password = security_manager.verify_password
 get_password_hash = security_manager.get_password_hash

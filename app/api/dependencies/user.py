@@ -1,6 +1,5 @@
 from typing import Annotated
 from typing_extensions import Annotated
-from collections.abc import  AsyncGenerator
 
 import jwt
 from jwt.exceptions import InvalidTokenError
@@ -10,12 +9,12 @@ from fastapi.security import OAuth2PasswordBearer
 
 from pydantic import ValidationError
 
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.db import engine
 from app.core import security
 from app.core.config import settings
-from app.models import TokenPayload, User
+from app.api.models import TokenPayload, User
+
+from .session import SessionDep
 
 
 reusable_oauth2 = OAuth2PasswordBearer(
@@ -23,12 +22,7 @@ reusable_oauth2 = OAuth2PasswordBearer(
 )
 
 
-async def get_db() -> AsyncGenerator[AsyncSession, None, None]:
-    async with AsyncSession(engine) as session:
-        yield session
 
-
-SessionDep = Annotated[AsyncSession, Depends(get_db)]
 TokenDep = Annotated[str, Depends(reusable_oauth2)]
 
 

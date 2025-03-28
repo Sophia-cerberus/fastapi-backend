@@ -3,9 +3,9 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 
-from app import crud
-from app.api.deps import SessionDep
-from app.models import (
+from app.api import crud
+from app.api.dependencies import SessionDep
+from app.api.models import (
     UserCreate,
     UserPublic,
 )

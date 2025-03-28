@@ -1,18 +1,18 @@
 from datetime import datetime, timezone
-from typing import Annotated, Any, Optional
+from typing import Annotated, Any
 
 import jwt
-from fastapi import APIRouter, Depends, HTTPException, status, Security
-from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import HTMLResponse
+from fastapi.security import OAuth2PasswordRequestForm
 from pydantic_core import ValidationError
 
 from app import crud
-from app.api.deps import CurrentUser, SessionDep, get_current_active_superuser
+from app.api.dependencies import CurrentUser, SessionDep, get_current_active_superuser
 from app.core import security
 from app.core.config import settings
 from app.core.security import get_password_hash
-from app.models import (
+from app.api.models import (
     AccessToken,
     NewPassword,
     Token,

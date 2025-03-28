@@ -14,10 +14,9 @@ async def request_exception_handler(request: Request, exc: RequestValidationErro
          status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
          content={
             "status_code": 422,
-            "message": f"Validation Error",
-            "data": None,
+            "message": f"Request Validation Error",
             "errors": [
-                f"{'.'.join(map(str, e['loc']))}: {e['msg']}"
+                {'.'.join(map(str, e['loc'])): e['msg']}
                 for e in exc.errors()
             ]
         },   
@@ -29,10 +28,9 @@ async def response_exception_handler(request: Request, exc: ResponseValidationEr
          status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
          content={
             "status_code": 422,
-            "message": f"Validation Error",
-            "data": None,
+            "message": f"Respone Validation Error",
             "errors": [
-                f"{'.'.join(map(str, e['loc']))}: {e['msg']}"
+                {'.'.join(map(str, e['loc'])): e['msg']}
                 for e in exc.errors()
             ]
         },   
@@ -45,9 +43,8 @@ async def validate_exception_handler(request: Request, exc: ValidationError) -> 
          content={
             "status_code": 422,
             "message": f"Validation Error",
-            "data": None,
             "errors": [
-                f"{'.'.join(map(str, e['loc']))}: {e['msg']}"
+                {'.'.join(map(str, e['loc'])): e['msg']}
                 for e in exc.errors()
             ]
         },   
@@ -60,7 +57,6 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
          content={
             "status_code": exc.status_code,
             "message": "HTTP Error", 
-            "data": None,
             "errors": exc.detail
         },   
     )
@@ -72,7 +68,6 @@ async def websocket_exception_handler(request: Request, exc: WebSocketException)
          content={
             "status_code": exc.code,
             "message": "WebScoket Error", 
-            "data": None,
             "errors": exc.reason
         },   
     )
@@ -84,7 +79,6 @@ async def argument_exception_handler(request: Request, exc: ArgumentError) -> JS
          content={
             "status_code": 400,
             "message": "Argument Error", 
-            "data": None,
             "errors": str(exc)
         },   
     )
@@ -96,7 +90,6 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
          content={
             "status_code": 500,
             "message": f"API Error",
-            "data": None,
             "errors": str(exc)
 
         },   

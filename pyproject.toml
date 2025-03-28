@@ -37,6 +37,10 @@ dependencies = [
     "faiss-cpu>=1.10.0",
     "rank-bm25>=0.2.2",
     "cryptography>=44.0.2",
+    "psycopg2>=2.9.10",
+    "argon2-cffi>=23.1.0",
+    "crewai>=0.108.0",
+    "langchain-mcp-adapters>=0.0.5",
 ]
 
 [tool.uv]

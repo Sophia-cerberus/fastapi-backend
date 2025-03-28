@@ -1,11 +1,8 @@
 from typing import Optional
 
-from app.models import User
+from app.api.models import User
 
-from fastapi_filter import FilterDepends, with_prefix
 from fastapi_filter.contrib.sqlalchemy import Filter
-
-from .items import ItemFilter
 
 
 class UserFilter(Filter):
@@ -15,7 +12,7 @@ class UserFilter(Filter):
     is_superuser: Optional[bool] = None
     full_name: Optional[str] = None
     full_name__ilike: Optional[str] = None
-    items: Optional[ItemFilter] = FilterDepends(with_prefix("items", ItemFilter))
+    # items: Optional[ItemFilter] = FilterDepends(with_prefix("items", ItemFilter))
 
     order_by: Optional[list[str]] = None
     search: Optional[str] = None

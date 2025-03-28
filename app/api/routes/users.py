@@ -3,18 +3,17 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 
-from sqlmodel import col, delete, func, select
+from sqlmodel import select
 
-from app import crud
-from app.api.deps import (
+from app.api import crud
+from app.api.dependencies import (
     CurrentUser,
     SessionDep,
     get_current_active_superuser,
 )
 from app.core.config import settings
 from app.core.security import get_password_hash, verify_password
-from app.models import (
-    Item,
+from app.api.models import (
     UpdatePassword,
     User,
     UserCreate,
@@ -22,7 +21,8 @@ from app.models import (
     UserRegister,
     UserUpdate,
     UserUpdateMe,
-    Message
+    Message,
+    UpdateLanguageMe
 )
 from app.utils import generate_new_account_email, send_email
 from fastapi_pagination.ext.sqlmodel import paginate
@@ -79,6 +79,23 @@ async def create_user(*, session: SessionDep, user_in: UserCreate, background_ta
             html_content=email_data.html_content,
         )
     return user
+
+@router.patch("/me/language", response_model=UserPublic)
+async def update_user_language(
+    *, session: SessionDep, language_update: UpdateLanguageMe, current_user: CurrentUser
+) -> Any:
+    """
+    Update the language of the current user.
+    """
+    # 更新用户的语言字段
+    current_user.language = language_update.language
+
+    # 提交更改到数据库
+    session.add(current_user)
+    await session.commit()
+    await session.refresh(current_user)
+
+    return current_user
 
 
 @router.patch("/me", response_model=UserPublic)
@@ -235,13 +252,17 @@ async def delete_user(
             status_code=status.HTTP_404_NOT_FOUND, 
             detail="User not found"
         )
+    elif user != current_user and not current_user.is_superuser:
+        raise HTTPException(
+            status_code=403, detail="The user doesn't have enough privileges"
+        )
     if user == current_user:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, 
             detail="Super users are not allowed to delete themselves"
         )
-    statement = delete(Item).where(col(Item.owner_id) == user_id)
-    await session.execute(statement)  # type: ignore
+    # statement = delete(Item).where(col(Item.owner_id) == user_id)
+    # await session.execute(statement)  # type: ignore
     await session.delete(user)
     await session.commit()
     return Message(message="User deleted successfully")
