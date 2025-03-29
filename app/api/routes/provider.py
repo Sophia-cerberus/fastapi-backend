@@ -1,10 +1,8 @@
 from typing import Any
-from fastapi import APIRouter, HTTPException
-from sqlmodel import select
+from fastapi import APIRouter
 
-from app.core.providers import model_provider_manager
 
-from app.api.dependencies import SessionDep, CurrentInstanceProvider, CurrentTeamAndUser
+from app.api.dependencies import SessionDep, CurrentInstanceProvider, CurrentTeamAndUser, InstanceStatementProvider
 from app.api.models import (
     Message,
     ModelProvider,
@@ -26,13 +24,14 @@ router = APIRouter(
 )
 
 @router.get("/", response_model=Page[ModelProviderOut])
-async def read_provider_list_with_models(
+async def read_providers(
     session: SessionDep,
-    _: CurrentTeamAndUser,
+    statement: InstanceStatementProvider,
     provider_filter: ProviderFilter = FilterDepends(ProviderFilter)
 ) -> Any:
-
-    statement = select(ModelProvider)
+    """
+    List of Providers
+    """
     statement = provider_filter.filter(statement)
     statement = provider_filter.sort(statement)
     return await paginate(session, statement)
@@ -92,25 +91,3 @@ async def delete_provider(provider: CurrentInstanceProvider, session: SessionDep
     await session.delete(provider)
     await session.commit()
     return Message(message="Api key deleted successfully")
-
-
-# 新增：同步提供者的模型配置到数据库
-@router.post("/{id}/sync", response_model=list[str])
-async def sync_provider(
-    provider: CurrentInstanceProvider,
-    session: SessionDep,
-):
-    """
-    Provider Sync to Models
-    """
-    config_models = model_provider_manager.get_supported_models(provider.provider_name)
-    if not config_models:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No models found in configuration for provider {provider.provider_name}",
-        )
-
-    # 同步模型到数据库
-    # synced_models = await sync_provider_models(session, provider.id, config_models)
-
-    return ...

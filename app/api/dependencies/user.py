@@ -1,4 +1,7 @@
 from typing import Annotated
+from sqlmodel import select
+from sqlmodel.sql._expression_select_cls import SelectOfScalar
+
 from typing_extensions import Annotated
 
 import jwt
@@ -20,8 +23,6 @@ from .session import SessionDep
 reusable_oauth2 = OAuth2PasswordBearer(
     tokenUrl=f"{settings.API_V1_STR}/login/token"
 )
-
-
 
 TokenDep = Annotated[str, Depends(reusable_oauth2)]
 

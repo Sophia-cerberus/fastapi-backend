@@ -1,12 +1,12 @@
 from typing import Any
 
 from fastapi import APIRouter
-from sqlmodel import or_, select
 
 from app.api.dependencies import (
-    SessionDep, CurrentTeamAndUser, CurrentInstanceOfGraph, ValidateCreateInGraph, ValidateUpdateInGraph,
+    SessionDep, CurrentTeamAndUser, CurrentInstanceOfGraph, 
+    ValidateCreateInGraph, ValidateUpdateInGraph, InstanceStatementGraph
 )
-from app.api.models import Graph, GraphCreate, GraphOut, GraphUpdate, Message, Team
+from app.api.models import Graph, GraphCreate, GraphOut, GraphUpdate, Message
 
 from fastapi_pagination.ext.sqlmodel import paginate
 from fastapi_pagination.links import Page
@@ -21,21 +21,12 @@ router = APIRouter(prefix="/graph", tags=["graph"])
 @router.get("/", response_model=Page[GraphOut])
 async def read_graphs(
     session: SessionDep,
-    current_team_and_user: CurrentTeamAndUser,
+    statement: InstanceStatementGraph,
     graph_filter: GraphFilter = FilterDepends(GraphFilter)
 ) -> Any:
     """
     Retrieve graphs from team.
     """
-    statement = select(Graph).where(Graph.team_id == current_team_and_user.team.id)
-    if not current_team_and_user.user.is_superuser:
-        statement = statement.join(Team).where(
-            or_(
-                Graph.owner_id == current_team_and_user.user.id,
-                Team.owner_id == current_team_and_user.user.id
-            )
-        )
-
     statement = graph_filter.filter(statement)
     statement = graph_filter.sort(statement)
     return await paginate(session, statement)

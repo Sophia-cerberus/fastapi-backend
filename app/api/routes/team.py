@@ -8,7 +8,7 @@ from sqlmodel import select
 
 from app.api.dependencies import (
     SessionDep, CurrentInstanceTeam,
-    ValidateCreateInTeam, ValidateUpdateOnTeam, CurrentUser,
+    ValidateCreateInTeam, ValidateUpdateOnTeam, CurrentUser, InstanceStatementTeam, 
     create_member_for_team
 )
 # from app.core.graph.build import generator
@@ -36,16 +36,12 @@ router = APIRouter(
 
 @router.get("/", response_model=Page[TeamOut])
 async def read_teams(
-    session: SessionDep, current_user: CurrentUser, 
+    session: SessionDep, statement: InstanceStatementTeam, 
     team_filter: TeamFilter = FilterDepends(TeamFilter)
 ) -> Any:
     """
-    Retrieve teams
+    List of teams
     """
-    statement = select(Team)
-    if not current_user.is_superuser:
-        statement = statement.where(Team.owner_id == current_user.id)
-
     statement = team_filter.filter(statement)
     statement = team_filter.sort(statement)
     return await paginate(session, statement)
@@ -71,18 +67,20 @@ async def create_team(
     Create new team and it's team leader
     """
     team = Team.model_validate(team_in, update={
-        "owner_id": current_user.id
+        "owner_id": current_user.id,
     })
+    member = create_member_for_team(team.model_copy())
 
-    session.add(team)
-    await session.commit()
-    await session.refresh(team)  # 确保获取最新状态
+    try:
+        session.add(team)
+        session.add(member)
+        await session.commit()
+        await session.refresh(team)
+        return team
+    except HTTPException as e:
+        await session.rollback()
+        raise e
 
-    member = create_member_for_team(team := team.model_copy())
-    session.add(member)
-    await session.commit()
-
-    return team
 
 
 @router.put("/{id}", response_model=TeamOut)

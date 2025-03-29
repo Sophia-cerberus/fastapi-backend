@@ -4,7 +4,7 @@ from fastapi import APIRouter, UploadFile, File, HTTPException
 from sqlmodel import select, or_
 
 from app.api.dependencies import (
-    SessionDep, CurrentTeamAndUser, CurrentInstanceUpload
+    SessionDep, CurrentTeamAndUser, CurrentInstanceUpload, InstanceStatementUpload
 )
 
 from app.api.models import Upload, UploadCreate, UploadOut, UploadUpdate, Message, Team
@@ -24,21 +24,12 @@ router = APIRouter(prefix="/upload", tags=["upload"])
 @router.get("/", response_model=Page[UploadOut])
 async def read_uploads(
     session: SessionDep,
-    current_team_and_user: CurrentTeamAndUser,
+    statement: InstanceStatementUpload,
     upload_filter: UploadFilter = FilterDepends(UploadFilter)
 ) -> Any:
     """
     Retrieve uploads from team.
     """
-    statement = select(Upload).where(Upload.team_id == current_team_and_user.team.id)
-    if not current_team_and_user.user.is_superuser:
-        statement = statement.join(Team).where(
-            or_(
-                Upload.owner_id == current_team_and_user.user.id,
-                Team.owner_id == current_team_and_user.user.id
-            )
-        )
-
     statement = upload_filter.filter(statement)
     statement = upload_filter.sort(statement)
     return await paginate(session, statement)

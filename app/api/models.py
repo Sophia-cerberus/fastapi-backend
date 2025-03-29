@@ -194,7 +194,7 @@ class Team(TeamBase, table=True):
     workflow: str  # TODO:
 
     members: list["Member"] = Relationship(
-        back_populates="belongs", sa_relationship_kwargs={"cascade": "delete"}
+        back_populates="team", sa_relationship_kwargs={"cascade": "delete"}
     )
     threads: list["Thread"] = Relationship(
         back_populates="team", sa_relationship_kwargs={"cascade": "delete"}
@@ -329,7 +329,7 @@ class MemberUpdate(MemberBase):
     backstory: str | None = None
     role: str | None = None  # type: ignore[assignment]
     type: str | None = None  # type: ignore[assignment]
-    belongs_to: uuid.UUID | None = None
+    team_id: uuid.UUID | None = None
     position_x: float | None = None  # type: ignore[assignment]
     position_y: float | None = None  # type: ignore[assignment]
     skills: list["Skill"] | None = None
@@ -343,7 +343,7 @@ class MemberUpdate(MemberBase):
 
 class Member(MemberBase, table=True):
     __table_args__ = (
-        UniqueConstraint("name", "belongs_to", name="unique_team_and_name"),
+        UniqueConstraint("name", "team_id", name="unique_team_and_name"),
     )
     id: uuid.UUID | None = Field(
         default_factory=uuid.uuid4,
@@ -351,8 +351,8 @@ class Member(MemberBase, table=True):
         index=True,
         nullable=False,
     )
-    belongs_to: uuid.UUID | None = Field(default=None, foreign_key="team.id", nullable=False)
-    belongs: Team | None = Relationship(back_populates="members")
+    team_id: uuid.UUID | None = Field(default=None, foreign_key="team.id", nullable=False)
+    team: Team | None = Relationship(back_populates="members")
 
     owner_id: uuid.UUID | None = Field(default=None, foreign_key="user.id", nullable=False)
     owner: User | None = Relationship(back_populates="members")
@@ -369,7 +369,7 @@ class Member(MemberBase, table=True):
 
 class MemberOut(MemberBase):
     id: uuid.UUID
-    belongs_to: uuid.UUID
+    team_id: uuid.UUID
     owner_id: uuid.UUID | None
 
 

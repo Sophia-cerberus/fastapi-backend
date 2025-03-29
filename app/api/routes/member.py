@@ -2,11 +2,10 @@
 from typing import Any
 
 from fastapi import APIRouter
-from sqlmodel import select
 
 from app.api.dependencies import (
     SessionDep, CurrentTeamAndUser, 
-    CurrentInstanceMember, ValidateCreateInMember, ValidateUpdateInMember
+    CurrentInstanceMember, ValidateCreateInMember, ValidateUpdateInMember, InstanceStatementMember
 )
 from app.api.models import (
     Member,
@@ -29,13 +28,12 @@ router = APIRouter(prefix="/member", tags=["member"])
 @router.get("/", response_model=Page[MemberOut])
 async def read_members(
     session: SessionDep,
-    current_team_and_user: CurrentTeamAndUser,
+    statement: InstanceStatementMember,
     member_filter: MemberFilter = FilterDepends(MemberFilter)
 ) -> Any:
     """
     Retrieve members from team.
     """
-    statement = select(Member).where(Member.belongs_to == current_team_and_user.team.id)
     statement = member_filter.filter(statement)
     statement = member_filter.sort(statement)
     return await paginate(session, statement)
@@ -60,7 +58,7 @@ async def create_member(
     Create new member.
     """
     member = Member.model_validate(member_in, update={
-        "belongs_to": current_team_and_user.team.id,
+        "team_id": current_team_and_user.team.id,
         "owner_id": current_team_and_user.user.id
     })
     session.add(member)

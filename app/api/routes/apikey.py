@@ -1,13 +1,11 @@
 from typing import Any
-import uuid
 
 from fastapi import APIRouter
-from sqlmodel import or_, select
 
 from app.core.security import generate_apikey, generate_short_apikey, get_password_hash
 
 from app.api.models import ApiKey, ApiKeyCreate, ApiKeyOut, ApiKeyOutPublic, Message, Team
-from app.api.dependencies import SessionDep, CurrentTeamAndUser, CurrentInstanceApiKey
+from app.api.dependencies import SessionDep, CurrentTeamAndUser, CurrentInstanceApiKey, InstanceStatementApiKey
 
 from fastapi_pagination.ext.sqlmodel import paginate
 from fastapi_pagination.links import Page
@@ -24,19 +22,10 @@ router = APIRouter(
 @router.get("/{team_id}", response_model=Page[ApiKeyOutPublic])
 async def read_api_keys(
     session: SessionDep,
-    current_team_and_user: CurrentTeamAndUser,
+    statement: InstanceStatementApiKey,
     api_key_filter: ApiKeyFilter = FilterDepends(ApiKeyFilter)
 ) -> Any:
     """Read api keys"""
-    statement = select(ApiKey).where(ApiKey.team_id == current_team_and_user.team.id)
-    if not current_team_and_user.user.is_superuser:
-        statement = statement.join(Team).where(            
-            or_(
-                ApiKey.owner_id == current_team_and_user.user.id,
-                Team.owner_id == current_team_and_user.user.id
-            )
-        )
-
     statement = api_key_filter.filter(statement)
     statement = api_key_filter.sort(statement)
     return await paginate(session, statement)

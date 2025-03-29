@@ -98,6 +98,7 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
 
 async def sqlalchemy_exception_handler(request: Request, exc: DBAPIError) -> JSONResponse:
      return JSONResponse(
+          
          status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
          content={
             "status_code": 500,
@@ -105,10 +106,6 @@ async def sqlalchemy_exception_handler(request: Request, exc: DBAPIError) -> JSO
             "errors": exc._message()
         },   
     )
-
-
-
-    
 
 
 def register_exception_handlers(app: FastAPI):

@@ -4,7 +4,7 @@ from typing import Any
 from fastapi import APIRouter
 from sqlmodel import select
 
-from app.api.dependencies import CurrentTeamAndUser, SessionDep, CurrentInstanceThread
+from app.api.dependencies import CurrentTeamAndUser, SessionDep, CurrentInstanceThread, InstanceStatementThread
 
 from app.api.models import (
     Message,
@@ -30,18 +30,12 @@ router = APIRouter(
 @router.get("/", response_model=Page[ThreadOut])
 async def read_threads(
     session: SessionDep,
-    current_team_and_user: CurrentTeamAndUser,
+    statement: InstanceStatementThread,
     thread_filter: ThreadFilter = FilterDepends(ThreadFilter)
 ) -> Any:
     """
-    Retrieve threads
+    List of threads
     """
-    statement = select(Thread).where(Thread.team_id == current_team_and_user.team.id)
-    if not current_team_and_user.user.is_superuser:
-        statement = statement.where(
-            Thread.owner_id == current_team_and_user.user.id
-        )
-
     statement = thread_filter.filter(statement)
     statement = thread_filter.sort(statement)
     return await paginate(session, statement)

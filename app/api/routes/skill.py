@@ -1,17 +1,14 @@
 from typing import Any, List
-import uuid
 
 from fastapi import APIRouter, HTTPException
-from sqlmodel import or_, select
 
-from app.api.dependencies import SessionDep, CurrentInstanceSkill, CurrentTeamAndUser, ValidateUpdateInSkill
+from app.api.dependencies import SessionDep, CurrentInstanceSkill, CurrentTeamAndUser, ValidateUpdateInSkill, InstanceStatementSkill
 from app.api.models import (
     Message,
     Skill,
     SkillCreate,
     SkillOut,
     SkillUpdate,
-    Team
 )
 # from app.core.tools.api_tool import ToolDefinition
 # from app.core.tools.tool_invoker import ToolInvokeResponse, invoke_tool
@@ -34,22 +31,12 @@ router = APIRouter(
 @router.get("/", response_model=Page[SkillOut])
 async def read_skills(
     session: SessionDep, 
-    current_team_and_user: CurrentTeamAndUser,
+    statement: InstanceStatementSkill,
     skill_filter: SkillFilter = FilterDepends(SkillFilter)
 ) -> Any:
     """
-    Retrieve skills
+    List of skills
     """
-    statement = select(Skill).where(Skill.team_id == current_team_and_user.team.id)
-    if not current_team_and_user.user.is_superuser:
-        statement = statement.join(Team).where(
-            or_(
-                Skill.owner_id == current_team_and_user.user.id, 
-                Skill.is_public == True,
-                Team.owner_id == current_team_and_user.user.id
-            )
-        )
-
     statement = skill_filter.filter(statement)
     statement = skill_filter.sort(statement)
     return await paginate(session, statement)

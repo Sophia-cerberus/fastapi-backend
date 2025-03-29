@@ -228,7 +228,6 @@ async def update_user(
     """
     Update a user.
     """
-
     user = await session.get(User, user_id)
     if not user:
         raise HTTPException(

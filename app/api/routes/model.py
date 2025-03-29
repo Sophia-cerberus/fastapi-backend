@@ -3,7 +3,7 @@ from typing import Any
 from fastapi import APIRouter
 from sqlmodel import select
 
-from app.api.dependencies import SessionDep, CurrentInstanceModel, CurrentTeamAndUser, ValidateUpdateInModel
+from app.api.dependencies import SessionDep, CurrentInstanceModel, CurrentTeamAndUser, ValidateUpdateInModel, InstanceStatementModel
 from app.api.models import Message, ModelCreate, Model, ModelOut, ModelUpdate
 
 from fastapi_pagination.ext.sqlmodel import paginate
@@ -22,13 +22,12 @@ router = APIRouter(
 @router.get("/", response_model=Page[ModelOut])
 async def read_models(
     session: SessionDep,
-    _: CurrentTeamAndUser,
+    statement: InstanceStatementModel,
     model_filter: ModelFilter = FilterDepends(ModelFilter),
 ) -> Any:
     """
     List of Models
     """
-    statement = select(Model)
     statement = model_filter.filter(statement)
     statement = model_filter.sort(statement)
     return await paginate(session, statement)
