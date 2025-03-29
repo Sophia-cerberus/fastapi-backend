@@ -1,10 +1,8 @@
-from typing import Any, Dict
-import uuid
-
+from typing import Any
 from fastapi import APIRouter, HTTPException
 from sqlmodel import select
 
-from app.api.dependencies import SessionDep, ValidateProviderOnRead
+from app.api.dependencies import SessionDep, CurrentInstanceProvider, CurrentTeamAndUser
 from app.core.providers import model_provider_manager
 from app.api.crud.provider import (
     sync_provider_models,
@@ -15,7 +13,6 @@ from app.api.models import (
     ModelProviderCreate,
     ModelProviderOut,
     ModelProviderUpdate,
-    ModelProviderWithModelsListOut,
 )
 
 from fastapi_pagination.ext.sqlmodel import paginate
@@ -30,11 +27,12 @@ router = APIRouter(
     prefix="/provider", tags=["provider"], 
 )
 
-@router.get("/", response_model=Page[ModelProviderWithModelsListOut])
+@router.get("/", response_model=Page[ModelProviderOut])
 async def read_provider_list_with_models(
     session: SessionDep,
+    _: CurrentTeamAndUser,
     provider_filter: ProviderFilter = FilterDepends(ProviderFilter)
-):
+) -> Any:
 
     statement = select(ModelProvider)
     statement = provider_filter.filter(statement)
@@ -43,26 +41,23 @@ async def read_provider_list_with_models(
 
 
 @router.get("/{id}", response_model=ModelProviderOut)
-async def read_provider(provider: ValidateProviderOnRead) -> ModelProvider:
+async def read_provider(provider: CurrentInstanceProvider) -> ModelProvider:
     """
     Get provider by ID.
     """
     return provider
 
 
-@router.get("/withmodels/{id}", response_model=ModelProviderWithModelsListOut)
-async def read_provider_with_models(provider: ValidateProviderOnRead):
-    """
-    Get provider with models by ID.
-    """
-    return provider
-
-
 # Routes for ModelProvider
 @router.post("/", response_model=ModelProvider)
-async def create_provider(model_provider: ModelProviderCreate, session: SessionDep):
-
-    provider = ModelProvider.model_validate(model_provider)
+async def create_provider(
+    model_provider: ModelProviderCreate, session: SessionDep,
+    current_team_and_user: CurrentTeamAndUser,
+) -> Any:
+    provider = ModelProvider.model_validate(model_provider, update={
+        "team_id": current_team_and_user.team.id,
+        "owner_id": current_team_and_user.user.id
+    })
     provider.set_api_key(model_provider.api_key)
     session.add(provider)
     await session.commit()
@@ -72,7 +67,7 @@ async def create_provider(model_provider: ModelProviderCreate, session: SessionD
 
 @router.put("/{id}", response_model=ModelProviderOut)
 async def update_provider(
-    provider: ValidateProviderOnRead,
+    provider: CurrentInstanceProvider,
     provider_in: ModelProviderUpdate,
     session: SessionDep,
 ) -> ModelProvider:
@@ -92,7 +87,7 @@ async def update_provider(
 
 
 @router.delete("/{id}", response_model=ModelProvider)
-async def delete_provider(provider: ValidateProviderOnRead, session: SessionDep):
+async def delete_provider(provider: CurrentInstanceProvider, session: SessionDep):
     """
     Delete a provider.
     """
@@ -104,7 +99,7 @@ async def delete_provider(provider: ValidateProviderOnRead, session: SessionDep)
 # 新增：同步提供者的模型配置到数据库
 @router.post("/{id}/sync", response_model=list[str])
 async def sync_provider(
-    provider: ValidateProviderOnRead,
+    provider: CurrentInstanceProvider,
     session: SessionDep,
 ):
     """

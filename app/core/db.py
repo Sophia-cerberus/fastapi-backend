@@ -1,17 +1,19 @@
+from pydantic import PostgresDsn
 from sqlalchemy.ext.asyncio.engine import AsyncEngine
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from sqlmodel import select
 
-from app import crud
 from app.core.config import settings
-from app.api.models.user import User, UserCreate
+from app.api.models import User, UserCreate
+from app.api import crud
 
-engine: AsyncEngine = create_async_engine(str(settings.SQLALCHEMY_DATABASE_URI))
+dsn: PostgresDsn = settings.SQLALCHEMY_RUNNABLE_DATABASE_URI
+engine: AsyncEngine = create_async_engine(dsn.unicode_string())
 
 
-# make sure all SQLModel models are imported (app.models) before initializing DB
+# make sure all SQLModel models are imported (app.api.models) before initializing DB
 # otherwise, SQLModel might fail to initialize relationships properly
 # for more details: https://github.com/fastapi/full-stack-fastapi-template/issues/28
         
@@ -22,7 +24,7 @@ async def init_db(session: AsyncSession) -> None:
     # the tables un-commenting the next lines
     # from sqlmodel import SQLModel
 
-    # This works because the models are already imported and registered from app.models
+    # This works because the models are already imported and registered from app.api.models
     # SQLModel.metadata.create_all(engine)
 
     user = await session.scalar(

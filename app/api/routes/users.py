@@ -17,7 +17,7 @@ from app.api.models import (
     UpdatePassword,
     User,
     UserCreate,
-    UserPublic,
+    UserOut,
     UserRegister,
     UserUpdate,
     UserUpdateMe,
@@ -40,13 +40,12 @@ router = APIRouter(
 @router.get(
     "/",
     dependencies=[Depends(get_current_active_superuser)],
-    response_model=Page[UserPublic]
+    response_model=Page[UserOut]
 )
 async def read_users(session: SessionDep, user_filter: UserFilter = FilterDepends(UserFilter)) -> Any:
     """
     Retrieve users.
     """
-
     statement = select(User)
     statement = user_filter.filter(statement)
     statement = user_filter.sort(statement)
@@ -54,9 +53,9 @@ async def read_users(session: SessionDep, user_filter: UserFilter = FilterDepend
 
 
 @router.post(
-    "/", dependencies=[Depends(get_current_active_superuser)], response_model=UserPublic
+    "/", dependencies=[Depends(get_current_active_superuser)], response_model=UserOut
 )
-async def create_user(*, session: SessionDep, user_in: UserCreate, background_tasks: BackgroundTasks, ) -> Any:
+async def create_user(*, session: SessionDep, user_in: UserCreate, background_tasks: BackgroundTasks) -> Any:
     """
     Create new user.
     """
@@ -80,7 +79,7 @@ async def create_user(*, session: SessionDep, user_in: UserCreate, background_ta
         )
     return user
 
-@router.patch("/me/language", response_model=UserPublic)
+@router.patch("/me/language", response_model=UserOut)
 async def update_user_language(
     *, session: SessionDep, language_update: UpdateLanguageMe, current_user: CurrentUser
 ) -> Any:
@@ -98,7 +97,7 @@ async def update_user_language(
     return current_user
 
 
-@router.patch("/me", response_model=UserPublic)
+@router.patch("/me", response_model=UserOut)
 async def update_user_me(
     *, session: SessionDep, user_in: UserUpdateMe, current_user: CurrentUser
 ) -> Any:
@@ -145,7 +144,7 @@ async def update_password_me(
     return Message(message="Password updated successfully")
 
 
-@router.get("/me", response_model=UserPublic)
+@router.get("/me", response_model=UserOut)
 def read_user_me(current_user: CurrentUser) -> Any:
     """
     Get current user.
@@ -169,7 +168,7 @@ async def delete_user_me(session: SessionDep, current_user: CurrentUser) -> Any:
     return Message(message="User deleted successfully")
 
 
-@router.post("/signup", response_model=UserPublic)
+@router.post("/signup", response_model=UserOut)
 async def register_user(session: SessionDep, user_in: UserRegister) -> Any:
     """
     Create new user without the need to be logged in.
@@ -186,7 +185,7 @@ async def register_user(session: SessionDep, user_in: UserRegister) -> Any:
     return user
 
 
-@router.get("/{user_id}", response_model=UserPublic)
+@router.get("/{user_id}", response_model=UserOut)
 async def read_user_by_id(
     user_id: uuid.UUID, session: SessionDep, current_user: CurrentUser
 ) -> Any:
@@ -208,7 +207,7 @@ async def read_user_by_id(
 @router.patch(
     "/{user_id}",
     dependencies=[Depends(get_current_active_superuser)],
-    response_model=UserPublic,
+    response_model=UserOut,
 )
 async def update_user(
     *,

@@ -13,6 +13,7 @@ class GraphBase(SQLModel):
         default_factory=dict,
         sa_column=Column("metadata", JSONB, nullable=False, server_default="{}"),
     )
+    is_public: bool = Field(default=False)  # 是否公开，可供其他用户使用
 
 
 class GraphCreate(GraphBase):

@@ -81,10 +81,11 @@ class Team(TeamBase, table=True):
     name: str = Field(regex=r"^[a-zA-Z0-9_-]{1,64}$", unique=True)
     owner_id: uuid.UUID | None = Field(default=None, foreign_key="user.id", nullable=False)
     owner: Optional["User"] | None = Relationship(back_populates="teams") # type: ignore
-    members: list["Member"] = Relationship( # type: ignore
-        back_populates="belongs", sa_relationship_kwargs={"cascade": "delete"}
-    )
     workflow: str  # TODO:
+
+    members: list["Member"] = Relationship( # type: ignore
+        back_populates="team", sa_relationship_kwargs={"cascade": "delete"}
+    )
     threads: list["Thread"] = Relationship( # type: ignore
         back_populates="team", sa_relationship_kwargs={"cascade": "delete"}
     )
@@ -97,6 +98,13 @@ class Team(TeamBase, table=True):
     apikeys: list["ApiKey"] = Relationship( # type: ignore
         back_populates="team", sa_relationship_kwargs={"cascade": "delete"}
     )
+    skills: list["Skill"] = Relationship( # type: ignore
+        back_populates="team", sa_relationship_kwargs={"cascade": "delete"}
+    )
+    uploads: list["Upload"] = Relationship( # type: ignore
+        back_populates="team", sa_relationship_kwargs={"cascade": "delete"}
+    )
+
 
 
 # Properties to return via API, id is always required

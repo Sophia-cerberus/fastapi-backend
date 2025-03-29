@@ -1,44 +1,46 @@
 from typing import Annotated
 import uuid
 
-from fastapi import Depends, HTTPException
-from sqlmodel import select
+from fastapi import Depends, HTTPException, status
+from sqlmodel import or_, select
 
-from app.api.models import Subgraph
+from app.api.models import Subgraph, Team
 
 from .session import SessionDep
-from .user import CurrentUser
+from .team import CurrentTeamAndUser
 
 
-async def validate_on_read(
-    session: SessionDep, id: uuid.UUID, current_user: CurrentUser
+async def current_instance(
+    session: SessionDep, id: uuid.UUID, current_team_and_user: CurrentTeamAndUser
 ) -> Subgraph:
+    
+    statement = select(Subgraph).where(Subgraph.team_id == current_team_and_user.team.id, Subgraph.id == id)
+    if not current_team_and_user.user.is_superuser:
+        statement = statement.where(
+            or_(
+                Subgraph.owner_id == current_team_and_user.user.id, 
+                Subgraph.is_public == True,
+                Team.owner_id == current_team_and_user.user.id,
+            )
+        )
 
-    subgraph = await session.get(Subgraph, id)
-
-    if not subgraph:
-        raise HTTPException(status_code=404, detail="Subgraph not found")
-    elif not current_user.is_superuser and (Subgraph.owner_id != current_user.id) and subgraph.is_public:
-        raise HTTPException(status_code=400, detail="Not enough permissions")
-
+    if not (subgraph := await session.scalar(statement)):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subgraph not found")
     return subgraph
 
 
-ValidateOnRead = Annotated[Subgraph, Depends(validate_on_read)]
-
-
-async def validate_name_on_create(session: SessionDep, graph_in: Subgraph) -> None:
+async def validate_create_in(session: SessionDep, graph_in: Subgraph) -> None:
     """Validate that graph name is unique"""
     statement = select(Subgraph).where(
-        Subgraph.name == graph_in.name, Subgraph.team_id == graph_in.team_id
+        Subgraph.name == graph_in.name, 
+        Subgraph.team_id == graph_in.team_id
     )
+    if not await session.scalar(statement):
+        return 
+    raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Subgraph name already exists")
 
-    graph = await session.scalar(statement)
-    if graph:
-        raise HTTPException(status_code=409, detail="Subgraph name already exists")
 
-
-async def validate_name_on_update(
+async def validate_update_in(
     session: SessionDep, graph_in: Subgraph, id: uuid.UUID
 ) -> None:
     """Validate that graph name is unique"""
@@ -46,11 +48,12 @@ async def validate_name_on_update(
         Subgraph.name == graph_in.name, Subgraph.id != id, 
         Subgraph.team_id == graph_in.team_id
     )
-    graph = await session.scalar(statement)
-    if graph:
-        raise HTTPException(status_code=409, detail="Subgraph name already exists")
+    if await session.scalar(statement):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Subgraph name already exists")
     
-    return await validate_on_read(session=session, id=id)
+    return await current_instance(session=session, id=id)
 
 
-ValidateOnUpdate = Annotated[Subgraph, Depends(validate_name_on_update)]
+CurrentInstance = Annotated[Subgraph, Depends(current_instance)]
+ValidateCreateIn = Annotated[None, Depends(validate_create_in)]
+ValidateUpdateOn = Annotated[Subgraph, Depends(validate_update_in)]

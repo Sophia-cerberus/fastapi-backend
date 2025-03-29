@@ -1,25 +1,32 @@
 from typing import Annotated
 import uuid
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, status
+from sqlmodel import or_, select
 
-from app.api.models import ModelProvider
+from app.api.models import ModelProvider, Team
 
 from .session import SessionDep
-from .user import CurrentUser
+from .team import CurrentTeamAndUser
 
 
-async def validate_on_read(
-    session: SessionDep, id: uuid.UUID, _: CurrentUser
+async def current_instance(
+    session: SessionDep, id: uuid.UUID, current_team_and_user: CurrentTeamAndUser
 ) -> ModelProvider:
     
-    instance = await session.get(ModelProvider, id)
-    if not instance:
-        raise HTTPException(
-            status_code=404,
-            detail="The provider with this ID does not exist in the system",
+    statement = (
+        select(ModelProvider).where(ModelProvider.team_id == current_team_and_user.team.id, ModelProvider.id == id)
+    )
+    if not current_team_and_user.user.is_superuser:
+        statement = statement.join(ModelProvider).where(
+            or_(
+                ModelProvider.owner_id == current_team_and_user.user.id, 
+                Team.owner_id == current_team_and_user.user.id,
+            )
         )
-    return instance
+    if not (provider := await session.scalar(statement)):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="provider not found")
+    return provider
 
 
-ValidateOnRead = Annotated[ModelProvider, Depends(validate_on_read)]
+CurrentInstance = Annotated[ModelProvider, Depends(current_instance)]

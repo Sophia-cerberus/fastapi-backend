@@ -1,11 +1,10 @@
 from typing import Any
 
-from fastapi import APIRouter, Depends
-from sqlmodel import select
+from fastapi import APIRouter
+from sqlmodel import select, or_
 
 from app.api.dependencies import (
-    CurrentUser, SessionDep, ValidateSubGraphOnRead, ValidateSubGraphOnUpdate, 
-    validate_subgraph_name_on_create
+    SessionDep, CurrentInstanceSubGraph, ValidateOnCreateSubGraph, CurrentTeamAndUser, ValidateOnUpdateSubGraph
 )
 from app.api.models import (
     Message,
@@ -13,6 +12,7 @@ from app.api.models import (
     SubgraphCreate,
     SubgraphOut,
     SubgraphUpdate,
+    Team,
 )
 
 from fastapi_pagination.ext.sqlmodel import paginate
@@ -22,6 +22,7 @@ from fastapi_filter import FilterDepends
 
 from ..filters import SubgraphFilter
 
+
 router = APIRouter(
     prefix="/subgraph", tags=["subgraph"], 
 )
@@ -29,16 +30,21 @@ router = APIRouter(
 
 @router.get("/", response_model=Page[SubgraphOut])
 async def read_all_public_subgraphs(
-    session: SessionDep, current_user: CurrentUser, 
+    session: SessionDep, 
+    current_team_and_user: CurrentTeamAndUser,
     subgraph_filter: SubgraphFilter = FilterDepends(SubgraphFilter)
 ) -> Any:
     """
     Retrieve all public subgraphs.
     """
-    statement = select(Subgraph)
-    if not current_user.is_superuser:
-        statement = statement.where(
-            Subgraph.owner_id == current_user.id, Subgraph.is_public == True
+    statement = select(Subgraph).where(Subgraph.team_id == current_team_and_user.team.id)
+    if not current_team_and_user.user.is_superuser:
+        statement = statement.join(Team).where(
+            or_(
+                Subgraph.owner_id == current_team_and_user.user.id, 
+                Subgraph.is_public == True,
+                Team.owner_id == current_team_and_user.user.id
+            )
         )
 
     statement = subgraph_filter.filter(statement)
@@ -47,8 +53,8 @@ async def read_all_public_subgraphs(
 
 
 @router.get("/{id}", response_model=SubgraphOut)
-def read_subgraph(
-    subgraph: ValidateSubGraphOnRead
+async def read_subgraph(
+    subgraph: CurrentInstanceSubGraph
 ) -> Any:
     """
     Get subgraph by ID.
@@ -60,17 +66,18 @@ def read_subgraph(
 async def create_subgraph(
     *,
     session: SessionDep,
-    current_user: CurrentUser,
-    _: bool = Depends(validate_subgraph_name_on_create),
+    current_team_and_user: CurrentTeamAndUser,
     subgraph_in: SubgraphCreate,
+     _: ValidateOnCreateSubGraph
 ) -> Any:
     """
     Create new subgraph.
     """
 
-    subgraph = Subgraph.model_validate(
-        subgraph_in, update={"owner_id": current_user.id}
-    )
+    subgraph = Subgraph.model_validate(subgraph_in, update={
+        "owner_id": current_team_and_user.user.id,
+        "team_id": current_team_and_user.team.id,
+    })
     session.add(subgraph)
     await session.commit()
     await session.refresh(subgraph)
@@ -81,7 +88,7 @@ async def create_subgraph(
 async def update_subgraph(
     *,
     session: SessionDep,
-    subgraph: ValidateSubGraphOnUpdate,
+    subgraph: ValidateOnUpdateSubGraph,
     subgraph_in: SubgraphUpdate,
 ) -> Any:
     """
@@ -97,7 +104,7 @@ async def update_subgraph(
 @router.delete("/{id}")
 async def delete_subgraph(
     session: SessionDep,
-    subgraph: ValidateSubGraphOnRead,
+    subgraph: CurrentInstanceSubGraph,
 ) -> Message:
     """
     Delete subgraph by ID.

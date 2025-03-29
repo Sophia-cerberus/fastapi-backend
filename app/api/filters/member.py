@@ -8,7 +8,6 @@ class MemberFilter(Filter):
     name__like: Optional[str] = None
     backstory__like: Optional[str] = None
     type: Optional[str] = None
-    owner_of: Optional[str] = None
 
     position_x__gt: Optional[float] = None
     position_x__gte: Optional[float] = None

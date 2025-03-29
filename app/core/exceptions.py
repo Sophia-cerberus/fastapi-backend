@@ -6,7 +6,8 @@ from fastapi.exceptions import (
     RequestValidationError, ResponseValidationError
 )
 from pydantic_core._pydantic_core import ValidationError
-from sqlalchemy.exc import ArgumentError
+import sqlalchemy
+from sqlalchemy.exc import ArgumentError, DBAPIError
 
 
 async def request_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
@@ -95,6 +96,20 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
         },   
     )
 
+async def sqlalchemy_exception_handler(request: Request, exc: DBAPIError) -> JSONResponse:
+     return JSONResponse(
+         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+         content={
+            "status_code": 500,
+            "message": f"sqlalchemy DBAPIError Error",
+            "errors": exc._message()
+        },   
+    )
+
+
+
+    
+
 
 def register_exception_handlers(app: FastAPI):
 
@@ -104,4 +119,5 @@ def register_exception_handlers(app: FastAPI):
     app.exception_handler(HTTPException)(http_exception_handler)
     app.exception_handler(WebSocketException)(websocket_exception_handler)
     app.exception_handler(ArgumentError)(argument_exception_handler)
+    app.exception_handler(DBAPIError)(sqlalchemy_exception_handler)
     app.exception_handler(Exception)(global_exception_handler)

@@ -37,6 +37,10 @@ class Thread(ThreadBase, table=True):
     )
     team_id: uuid.UUID | None = Field(default=None, foreign_key="team.id", nullable=False)
     team: Optional["Team"] | None = Relationship(back_populates="threads") # type: ignore
+
+    owner_id: uuid.UUID | None = Field(default=None, foreign_key="user.id", nullable=False)
+    owner: Optional["User"] | None = Relationship(back_populates="threads") # type: ignore
+
     checkpoints: list["Checkpoint"] = Relationship( # type: ignore
         back_populates="thread", sa_relationship_kwargs={"cascade": "delete"}
     )

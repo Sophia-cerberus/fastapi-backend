@@ -3,8 +3,8 @@ from typing import Any
 from fastapi import APIRouter
 from sqlmodel import select
 
-from app.api.dependencies import SessionDep, ValidateModelOnRead
-from app.api.models import Message, Models, ModelUpdate, ModelCreate, ModelOut
+from app.api.dependencies import SessionDep, CurrentInstanceModel, CurrentTeamAndUser, ValidateUpdateInModel
+from app.api.models import Message, ModelCreate, Model, ModelOut, ModelUpdate
 
 from fastapi_pagination.ext.sqlmodel import paginate
 from fastapi_pagination.links import Page
@@ -21,37 +21,54 @@ router = APIRouter(
 
 @router.get("/", response_model=Page[ModelOut])
 async def read_models(
-    session: SessionDep, 
-    model_filter: ModelFilter = FilterDepends(ModelFilter)
+    session: SessionDep,
+    _: CurrentTeamAndUser,
+    model_filter: ModelFilter = FilterDepends(ModelFilter),
 ) -> Any:
     """
     List of Models
     """
-    statement = select(Models)
+    statement = select(Model)
     statement = model_filter.filter(statement)
     statement = model_filter.sort(statement)
     return await paginate(session, statement)
 
 
-@router.post("/", response_model=Models)
-async def create_models(model_in: ModelCreate, session: SessionDep) -> Models:
+@router.post("/", response_model=Model)
+async def create_models(
+    ai_model_in: ModelCreate, session: SessionDep, 
+    current_team_and_user: CurrentTeamAndUser) -> Model:
     """
     Create Models
     """
-    meta_ = model_in.meta_.copy()
-    model = Models.model_validate(model_in, update={"meta_": meta_ or {}})
+    meta_ = ai_model_in.meta_.copy()
+    model = Model.model_validate(ai_model_in, update={
+        "meta_": meta_ or {},
+        "owner_id": current_team_and_user.user.id,
+        "team_id": current_team_and_user.team.id
+    })
     session.add(model)
     await session.commit()
     await session.refresh(model)
     return model
 
 
-@router.put("/{id}", response_model=Models)
-async def update_model(model: ValidateModelOnRead, model_in: ModelUpdate, session: SessionDep):
+@router.get("/{id}", response_model=Model)
+async def read_model(model: CurrentInstanceModel) -> ModelOut:
+    """
+    Retrieve Model
+    """
+    return model
+    
+
+@router.put("/{id}", response_model=ModelOut)
+async def update_model(
+    model: ValidateUpdateInModel, ai_model_in: ModelUpdate, session: SessionDep
+) -> Any:
     """
     Update Models
     """
-    model.sqlmodel_update(model_in)
+    model.sqlmodel_update(ai_model_in)
     session.add(model)
     await session.commit()
     await session.refresh(model)
@@ -59,10 +76,10 @@ async def update_model(model: ValidateModelOnRead, model_in: ModelUpdate, sessio
 
 
 # 新增一个用于更新模型元数据的端点
-@router.patch("/{model_id}/metadata", response_model=Models)
+@router.patch("/{id}/metadata", response_model=ModelOut)
 async def update_model_metadata(
-    model: ValidateModelOnRead, metadata_in: dict[str, Any], session: SessionDep
-) -> Models:
+    model: ValidateUpdateInModel, metadata_in: dict[str, Any], session: SessionDep
+) -> Any:
     """
     Patch Meta Of Models.
     """
@@ -73,8 +90,8 @@ async def update_model_metadata(
     return model
 
 
-@router.delete("/{model_id}", response_model=Models)
-async def delete_model(model: ValidateModelOnRead, session: SessionDep) -> Message:
+@router.delete("/{id}", response_model=Message)
+async def delete_model(model: CurrentInstanceModel, session: SessionDep) -> Message:
     """
     Delete a provider.
     """

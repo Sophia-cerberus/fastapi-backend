@@ -7,7 +7,7 @@ from app.api import crud
 from app.api.dependencies import SessionDep
 from app.api.models import (
     UserCreate,
-    UserPublic,
+    UserOut,
 )
 
 
@@ -21,7 +21,7 @@ class PrivateUserCreate(BaseModel):
     is_verified: bool = False
 
 
-@router.post("/users/", response_model=UserPublic)
+@router.post("/users/", response_model=UserOut)
 async def create_user(user_in: PrivateUserCreate, session: SessionDep) -> Any:
     """
     Create a new user.

@@ -31,13 +31,7 @@ async def update_user(*, session: AsyncSession, db_user: User, user_in: UserUpda
     return db_user
 
 
-async def get_user_by_email(*, session: AsyncSession, email: str) -> User | None:
-    statement = select(User).where(User.email == email)
-    return await session.scalar(statement)
+# async def get_user_by_email(*, session: AsyncSession, email: str) -> User | None:
+#     statement = select(User).where(User.email == email)
+#     return await session.scalar(statement)
 
-
-async def authenticate(*, session: AsyncSession, email: str, password: str) -> User | None:
-    db_user = await get_user_by_email(session=session, email=email)
-    if not (db_user and verify_password(password, db_user.hashed_password)):
-        return
-    return db_user

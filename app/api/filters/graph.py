@@ -1,4 +1,6 @@
+from datetime import datetime
 from typing import Optional
+import uuid
 
 from app.api.models import Graph
 
@@ -6,22 +8,20 @@ from fastapi_filter.contrib.sqlalchemy import Filter
 
 
 class GraphFilter(Filter):
-    owner_id: Optional[str] = None
+    owner_id: Optional[uuid.UUID] = None
     owner__ilike: Optional[str] = None
-    team_id: Optional[str] = None
+    team_id: Optional[uuid.UUID] = None
     team__ilike: Optional[str] = None
 
-    created_at__gt: Optional[str] = None
-    created_at__gte: Optional[str] = None
-    created_at__lt: Optional[str] = None
-    created_at__lte: Optional[str] = None
-    created_at: Optional[str] = None
+    created_at__gt: Optional[datetime] = None
+    created_at__gte: Optional[datetime] = None
+    created_at__lt: Optional[datetime] = None
+    created_at__lte: Optional[datetime] = None
 
-    updated_at__gt: Optional[str] = None
-    updated_at__gte: Optional[str] = None
-    updated_at__lt: Optional[str] = None
-    updated_at__lte: Optional[str] = None
-    updated_at: Optional[str] = None
+    updated_at__gt: Optional[datetime] = None
+    updated_at__gte: Optional[datetime] = None
+    updated_at__lt: Optional[datetime] = None
+    updated_at__lte: Optional[datetime] = None
 
     order_by: Optional[list[str]] = None
     search: Optional[str] = None

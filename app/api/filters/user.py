@@ -6,13 +6,10 @@ from fastapi_filter.contrib.sqlalchemy import Filter
 
 
 class UserFilter(Filter):
-    email: Optional[str] = None
     email__ilike: Optional[str] = None
     is_active: Optional[bool] = None
     is_superuser: Optional[bool] = None
-    full_name: Optional[str] = None
     full_name__ilike: Optional[str] = None
-    # items: Optional[ItemFilter] = FilterDepends(with_prefix("items", ItemFilter))
 
     order_by: Optional[list[str]] = None
     search: Optional[str] = None

@@ -1,18 +1,20 @@
 from typing import Any, List
+import uuid
 
 from fastapi import APIRouter, HTTPException
 from sqlmodel import or_, select
 
-from app.api.dependencies import CurrentUser, SessionDep, ValidateSkillOnRead
+from app.api.dependencies import SessionDep, CurrentInstanceSkill, CurrentTeamAndUser, ValidateUpdateInSkill
 from app.api.models import (
     Message,
     Skill,
     SkillCreate,
     SkillOut,
     SkillUpdate,
+    Team
 )
-from app.core.tools.api_tool import ToolDefinition
-from app.core.tools.tool_invoker import ToolInvokeResponse, invoke_tool
+# from app.core.tools.api_tool import ToolDefinition
+# from app.core.tools.tool_invoker import ToolInvokeResponse, invoke_tool
 
 from langchain_mcp_adapters.client import MultiServerMCPClient, BaseTool
 
@@ -31,15 +33,21 @@ router = APIRouter(
 
 @router.get("/", response_model=Page[SkillOut])
 async def read_skills(
-    session: SessionDep, current_user: CurrentUser, skill_filter: SkillFilter = FilterDepends(SkillFilter)
+    session: SessionDep, 
+    current_team_and_user: CurrentTeamAndUser,
+    skill_filter: SkillFilter = FilterDepends(SkillFilter)
 ) -> Any:
     """
     Retrieve skills
     """
-    statement = select(Skill)
-    if not current_user.is_superuser:
-        statement = statement.where(
-            or_(Skill.managed == True, Skill.owner_id == current_user.id)
+    statement = select(Skill).where(Skill.team_id == current_team_and_user.team.id)
+    if not current_team_and_user.user.is_superuser:
+        statement = statement.join(Team).where(
+            or_(
+                Skill.owner_id == current_team_and_user.user.id, 
+                Skill.is_public == True,
+                Team.owner_id == current_team_and_user.user.id
+            )
         )
 
     statement = skill_filter.filter(statement)
@@ -48,7 +56,7 @@ async def read_skills(
 
 
 @router.get("/{id}", response_model=SkillOut)
-def read_skill(skill: ValidateSkillOnRead) -> Skill:
+def read_skill(skill: CurrentInstanceSkill) -> Skill:
     """
     Get skill by ID.
     """
@@ -59,13 +67,16 @@ def read_skill(skill: ValidateSkillOnRead) -> Skill:
 async def create_skill(
     *,
     session: SessionDep,
-    current_user: CurrentUser,
+    current_team_and_user: CurrentTeamAndUser,
     skill_in: SkillCreate,
 ) -> Any:
     """
     Create new skill.
     """
-    skill = Skill.model_validate(skill_in, update={"owner_id": current_user.id})
+    skill = Skill.model_validate(skill_in, update={
+        "owner_id": current_team_and_user.user.id,
+        "team_id": current_team_and_user.team.id
+    })
     session.add(skill)
     await session.commit()
     await session.refresh(skill)
@@ -76,7 +87,7 @@ async def create_skill(
 async def update_skill(
     *,
     session: SessionDep,
-    skill: ValidateSkillOnRead,
+    skill: ValidateUpdateInSkill,
     skill_in: SkillUpdate,
 ) -> Any:
     """
@@ -90,7 +101,7 @@ async def update_skill(
 
 
 @router.delete("/{id}")
-async def delete_skill(session: SessionDep, skill: ValidateSkillOnRead) -> Any:
+async def delete_skill(session: SessionDep, skill: CurrentInstanceSkill) -> Any:
     """
     Delete a skill.
     """
@@ -102,20 +113,20 @@ async def delete_skill(session: SessionDep, skill: ValidateSkillOnRead) -> Any:
     return Message(message="Skill deleted successfully")
 
 
-@router.post("/invoke-tool")
-def invoke_tools(tool_name: str, args: dict) -> ToolInvokeResponse:
-    """
-    Invoke a tool by name with the provided arguments.
-    """
-    result = invoke_tool(tool_name, args)  # 调用工具函数
-    return result  # 直接返回自定义响应模型
+# @router.post("/invoke-tool")
+# def invoke_tools(tool_name: str, args: dict) -> ToolInvokeResponse:
+#     """
+#     Invoke a tool by name with the provided arguments.
+#     """
+#     result = invoke_tool(tool_name, args)  # 调用工具函数
+#     return result  # 直接返回自定义响应模型
 
 
 @router.patch("/{id}/credentials", response_model=SkillOut)
 async def update_credentials(
     *,
     session: SessionDep,
-    skill: ValidateSkillOnRead,
+    skill: ValidateUpdateInSkill,
     credentials: dict[str, dict[str, Any]],
 ) -> Any:
     """

@@ -13,7 +13,7 @@ class SkillFilter(Filter):
     description__ilike: Optional[str] = None
     display_name: Optional[str] = None
     display_name__ilike: Optional[str] = None
-    managed: Optional[bool] = None
+    is_public: Optional[bool] = None
 
     order_by: Optional[list[str]] = None
     search: Optional[str] = None

@@ -62,17 +62,28 @@ class Settings(BaseSettings):
     
     @computed_field  # type: ignore[prop-decorator]
     @property
-    def SQLALCHEMY_DATABASE_URI(self) -> PostgresDsn:
+    def SQLALCHEMY_MIGRATE_DATABASE_URI(self) -> PostgresDsn:
         return MultiHostUrl.build(
-            scheme="postgresql+asyncpg",
-            # scheme="postgresql+psycopg2", # for migrate
+            scheme="postgresql+psycopg2",
             username=self.POSTGRES_USER,
             password=self.POSTGRES_PASSWORD,
             host=self.POSTGRES_SERVER,
             port=self.POSTGRES_PORT,
             path=self.POSTGRES_DB,
         )
-
+    
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def SQLALCHEMY_RUNNABLE_DATABASE_URI(self) -> PostgresDsn:
+        return MultiHostUrl.build(
+            scheme="postgresql+asyncpg",
+            username=self.POSTGRES_USER,
+            password=self.POSTGRES_PASSWORD,
+            host=self.POSTGRES_SERVER,
+            port=self.POSTGRES_PORT,
+            path=self.POSTGRES_DB,
+        )
+    
     SMTP_TLS: bool = True
     SMTP_SSL: bool = False
     SMTP_PORT: int = 587

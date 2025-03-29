@@ -40,10 +40,10 @@ async def read_threads(
     """
     Retrieve threads
     """
-    statement = select(Thread)
+    statement = select(Thread).where(Thread.team_id == current_team_and_user.team.id)
     if not current_team_and_user.user.is_superuser:
-        statement = statement.join(Team).where(
-            Team.owner_id == current_team_and_user.user.id, Thread.team_id == current_team_and_user.team.id
+        statement = statement.where(
+            Thread.owner_id == current_team_and_user.user.id
         )
 
     statement = thread_filter.filter(statement)
@@ -82,9 +82,11 @@ async def create_thread(
     """
     Create new thread
     """
-    thread = Thread.model_validate(
-        thread_in, update={"team_id": current_team_and_user.team.id, "updated_at": datetime.now()}
-    )
+    thread = Thread.model_validate(thread_in, update={
+        "team_id": current_team_and_user.team.id, 
+        "owner": current_team_and_user.user.id, 
+        "updated_at": datetime.now()
+    })
     session.add(thread)
     await session.commit()
     await session.refresh(thread)

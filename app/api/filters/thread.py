@@ -1,4 +1,6 @@
+from datetime import datetime
 from typing import Optional
+import uuid
 
 from app.api.models import Thread
 
@@ -8,13 +10,13 @@ from fastapi_filter.contrib.sqlalchemy import Filter
 
 class ThreadFilter(Filter):
 
-    updated_at__gt: Optional[str] = None
-    updated_at__gte: Optional[str] = None
-    updated_at__lt: Optional[str] = None
-    updated_at__lte: Optional[str] = None
-    updated_at: Optional[str] = None
+    updated_at__gt: Optional[datetime] = None
+    updated_at__gte: Optional[datetime] = None
+    updated_at__lt: Optional[datetime] = None
+    updated_at__lte: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
-    team_id: Optional[str] = None
+    team_id: Optional[uuid.UUID] = None
     team__ilike: Optional[str] = None
     query__ilike: Optional[str] = None
 

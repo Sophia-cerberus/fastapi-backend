@@ -1,9 +1,10 @@
+
+# Shared properties
 import uuid
 from pydantic import EmailStr
 from sqlmodel import Field, SQLModel, Relationship
 
 
-# Shared properties
 class UserBase(SQLModel):
     email: EmailStr = Field(unique=True, index=True, max_length=255)
     is_active: bool = True
@@ -51,9 +52,10 @@ class User(UserBase, table=True):
     uploads: list["Upload"] = Relationship(back_populates="owner") # type: ignore
     graphs: list["Graph"] = Relationship(back_populates="owner") # type: ignore
     subgraphs: list["Subgraph"] = Relationship(back_populates="owner") # type: ignore
+    apikeys: list["ApiKey"] = Relationship(back_populates="owner") # type: ignore
     language: str = Field(default="en-US")
 
     
 # Properties to return via API, id is always required
-class UserPublic(UserBase):
+class UserOut(UserBase):
     id: uuid.UUID

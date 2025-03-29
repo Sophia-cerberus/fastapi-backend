@@ -1,12 +1,10 @@
 from typing import Any
-import uuid
 
-from fastapi import APIRouter, Depends
-from sqlmodel import select
+from fastapi import APIRouter
+from sqlmodel import or_, select
 
 from app.api.dependencies import (
-    CurrentUser, SessionDep, CurrentTeamAndUser, ValidateGraphOnRead,
-    validate_graph_name_on_create, ValidateGraphOnUpdate
+    SessionDep, CurrentTeamAndUser, CurrentInstanceOfGraph, ValidateCreateInGraph, ValidateUpdateInGraph,
 )
 from app.api.models import Graph, GraphCreate, GraphOut, GraphUpdate, Message, Team
 
@@ -23,17 +21,20 @@ router = APIRouter(prefix="/graph", tags=["graph"])
 @router.get("/", response_model=Page[GraphOut])
 async def read_graphs(
     session: SessionDep,
-    current_user: CurrentUser,
-    team_id: uuid.UUID,
+    current_team_and_user: CurrentTeamAndUser,
     graph_filter: GraphFilter = FilterDepends(GraphFilter)
 ) -> Any:
     """
     Retrieve graphs from team.
     """
-
-    statement = select(Graph).where(Graph.team_id == team_id)
-    if not current_user.is_superuser:
-        statement = statement.join(Team).where(Team.owner_id == current_user.id)
+    statement = select(Graph).where(Graph.team_id == current_team_and_user.team.id)
+    if not current_team_and_user.user.is_superuser:
+        statement = statement.join(Team).where(
+            or_(
+                Graph.owner_id == current_team_and_user.user.id,
+                Team.owner_id == current_team_and_user.user.id
+            )
+        )
 
     statement = graph_filter.filter(statement)
     statement = graph_filter.sort(statement)
@@ -41,7 +42,7 @@ async def read_graphs(
 
 
 @router.get("/{id}", response_model=GraphOut)
-async def read_graph(graph: ValidateGraphOnRead) -> Any:
+async def read_graph(graph: CurrentInstanceOfGraph) -> Any:
     """
     Get graph by ID.
     """
@@ -54,14 +55,15 @@ async def create_graph(
     session: SessionDep,
     current_team_and_user: CurrentTeamAndUser,
     graph_in: GraphCreate,
-    _: bool = Depends(validate_graph_name_on_create),
+    _: ValidateCreateInGraph,
 ) -> Any:
     """
     Create new graph.
     """
-    graph = Graph.model_validate(
-        graph_in, update={"team_id": current_team_and_user.team.id, "owner_id": current_team_and_user.user.id}
-    )
+    graph = Graph.model_validate(graph_in, update={
+        "team_id": current_team_and_user.team.id, 
+        "owner_id": current_team_and_user.user.id
+    })
     session.add(graph)
     await session.commit()
     await session.refresh(graph)
@@ -72,13 +74,12 @@ async def create_graph(
 async def update_graph(
     *,
     session: SessionDep,
-    _: CurrentTeamAndUser,
-    graph: ValidateGraphOnUpdate,
+    graph: ValidateUpdateInGraph,
     graph_in: GraphUpdate,
 ) -> Any:
     """
     Update graph by ID.
-    """
+    """        
     graph.sqlmodel_update(graph_in)
     session.add(graph)
     await session.commit()
@@ -89,8 +90,7 @@ async def update_graph(
 @router.delete("/{id}")
 async def delete_graph(
     session: SessionDep,
-    _: CurrentTeamAndUser,
-    graph: ValidateGraphOnRead
+    graph: CurrentInstanceOfGraph
 ) -> None:
     """
     Delete graph by ID.

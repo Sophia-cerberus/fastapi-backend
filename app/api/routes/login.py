@@ -2,12 +2,13 @@ from datetime import datetime, timezone
 from typing import Annotated, Any
 
 import jwt
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from fastapi.responses import HTMLResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic_core import ValidationError
+from sqlmodel import select
 
-from app import crud
+from app.api import crud
 from app.api.dependencies import CurrentUser, SessionDep, get_current_active_superuser
 from app.core import security
 from app.core.config import settings
@@ -18,7 +19,7 @@ from app.api.models import (
     Token,
     TokenPayload,
     User,
-    UserPublic,
+    UserOut,
     Message
 )
 from app.utils import (
@@ -27,6 +28,7 @@ from app.utils import (
     send_email,
     verify_password_reset_token,
 )
+from app.core.security import get_password_hash, verify_password, generate_token
 
 
 router = APIRouter(tags=["login"])
@@ -39,11 +41,10 @@ async def login_token(
     """
     OAuth2 compatible token login, get an access token for future requests
     """
+    statement = select(User).where(User.email == form_data.username)
+    user = await session.scalar(statement)
 
-    user = await crud.authenticate(
-        session=session, email=form_data.username, password=form_data.password
-    )
-    if not user:
+    if not (user and verify_password(form_data.password, user.hashed_password)):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect email or password")
     elif not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Inactive user")
@@ -94,15 +95,13 @@ async def login_refresh(refresh_token: str, session: SessionDep) -> AccessToken:
         )
 
     # 使用已验证的用户信息生成新的访问令牌
-    token = security.create_token(
-        user.id,  # user.id 是用户的唯一标识符
-    )
+    token = security.generate_token(user.id)
     return AccessToken(
         access_token=token.access_token()
     )
 
 
-@router.post("/login/test-token", response_model=UserPublic)
+@router.post("/login/test-token", response_model=UserOut)
 def test_token(current_user: CurrentUser) -> Any:
     """
     Test access token
@@ -111,11 +110,12 @@ def test_token(current_user: CurrentUser) -> Any:
 
 
 @router.post("/password-recovery/{email}")
-async def recover_password(email: str, session: SessionDep) -> Message:
+async def recover_password(email: str, session: SessionDep, background_tasks: BackgroundTasks) -> Message:
     """
     Password Recovery
     """
-    user = await crud.get_user_by_email(session=session, email=email)
+    statement = select(User).where(User.email == email)
+    user = await session.scalar(statement)
 
     if not user:
         raise HTTPException(
@@ -127,7 +127,8 @@ async def recover_password(email: str, session: SessionDep) -> Message:
     email_data = generate_reset_password_email(
         email_to=user.email, email=email, token=password_reset_token
     )
-    send_email(
+    background_tasks(
+        send_email,
         email_to=user.email,
         subject=email_data.subject,
         html_content=email_data.html_content,

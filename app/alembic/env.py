@@ -1,6 +1,7 @@
 from logging.config import fileConfig
 
 from alembic import context
+from pydantic import PostgresDsn
 from sqlalchemy import engine_from_config, pool
 
 # this is the Alembic Config object, which provides
@@ -17,7 +18,7 @@ fileConfig(config.config_file_name)
 # target_metadata = mymodel.Base.metadata
 # target_metadata = None
 
-from sqlmodel import SQLModel
+from app.api.models import SQLModel
 from app.core.config import settings # noqa
 
 target_metadata = SQLModel.metadata
@@ -29,7 +30,8 @@ target_metadata = SQLModel.metadata
 
 
 def get_url():
-    return str(settings.SQLALCHEMY_DATABASE_URI)
+    dsn: PostgresDsn = settings.SQLALCHEMY_MIGRATE_DATABASE_URI
+    return dsn.unicode_string()
 
 
 def run_migrations_offline():

@@ -1,49 +1,69 @@
 
 from typing import Annotated
 import uuid
-from fastapi import Depends, HTTPException
-from sqlmodel import select
+from fastapi import Depends, HTTPException, status
+from sqlmodel import select, or_
 
 from app.api.models import Graph, GraphCreate, GraphUpdate, Team
-from .user import CurrentUser
+from app.core.config import settings
+
+from .team import CurrentTeamAndUser
 from .session import SessionDep
 
 
-async def validate_on_read(
-    session: SessionDep, id: uuid.UUID, current_user: CurrentUser, team_id: uuid.UUID
+async def current_instance(
+    session: SessionDep, id: uuid.UUID, current_team_and_user: CurrentTeamAndUser
 ) -> Graph:
 
-    statement = select(Graph).where(Graph.team_id == team_id, Graph.id == id)
+    statement = (
+        select(Graph).where(Graph.team_id == current_team_and_user.team.id, Graph.id == id)
+    )
+    if not current_team_and_user.user.is_superuser:
+        statement = statement.join(Team).where(
+            or_(
+                Graph.owner_id == current_team_and_user.user.id, 
+                Team.owner_id == current_team_and_user.user.id,
+                Graph.is_public == True
+            )
+        )
 
-    if not current_user.is_superuser:
-        statement = statement.join(Team).where(Team.owner_id == current_user.id)
-
-    graph = await session.scalar(statement)
-    if not graph:
-        raise HTTPException(status_code=404, detail="Graph not found")
+    if not (graph := await session.scalar(statement)):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Graph not found")
     return graph
 
 
-ValidateOnRead = Annotated[Graph, Depends(validate_on_read)]
-
-
-async def validate_name_on_create(session: SessionDep, graph_in: GraphCreate) -> None:
-    """Validate that graph name is unique"""
-    statement = select(Graph).where(Graph.name == graph_in.name)
-    graph = await session.scalar(statement)
-    if graph:
-        raise HTTPException(status_code=409, detail="Graph name already exists")
-
-
-async def validate_name_on_update(
-    session: SessionDep, graph_in: GraphUpdate, id: uuid.UUID
+async def validate_create_in(
+        session: SessionDep, graph_in: GraphCreate, current_team_and_user: CurrentTeamAndUser
 ) -> None:
-    """Validate that graph name is unique"""
-    statement = select(Graph).where(Graph.name == graph_in.name, Graph.id != id)
-    graph = await session.scalar(statement)
-    if graph:
-        raise HTTPException(status_code=409, detail="Graph name already exists")
     
-    return await validate_on_read(session=session, id=id)
+    statement = select(Graph).where(
+        Graph.name == graph_in.name, 
+        Graph.team_id == current_team_and_user.team.id,
+    )
+    if not await session.scalar(statement):
+        return
+    
+    raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Graph name already exists")
 
-ValidateOnUpdate = Annotated[Graph, Depends(validate_name_on_update)]
+
+async def validate_update_in(
+    session: SessionDep, graph_in: GraphUpdate, id: uuid.UUID, current_team_and_user: CurrentTeamAndUser
+) -> None:
+    
+    if graph_in.name in settings.PROTECTED_NAMES:
+        raise HTTPException(
+            status_code=409, detail="Name is a protected name. Choose another name."
+        )
+    statement = select(Graph).where(
+        Graph.name == graph_in.name, Graph.id != id,
+        Graph.team_id == current_team_and_user.team.id
+    )
+    if await session.scalar(statement):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Graph name already exists")
+    
+    return await current_instance(session=session, id=id, current_team_and_user=current_team_and_user)
+
+
+CurrentInstance = Annotated[Graph, Depends(current_instance)]
+ValidateCreateIn = Annotated[None, Depends(validate_create_in)]
+ValidateUpdateIn = Annotated[Graph, Depends(validate_update_in)]

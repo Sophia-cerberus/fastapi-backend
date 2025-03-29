@@ -29,7 +29,6 @@ class MemberBase(SQLModel):
     backstory: str | None = None
     role: str
     type: str  # one of: leader, worker, freelancer
-    owner_of: int | None = None
     position_x: float
     position_y: float
     source: int | None = None
@@ -64,13 +63,15 @@ class Member(MemberBase, table=True):
         UniqueConstraint("name", "belongs_to", name="unique_team_and_name"),
     )
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+
     belongs_to: uuid.UUID = Field(foreign_key="team.id", nullable=False)
-    belongs: Optional["Team"] | None = Relationship(back_populates="members") # type: ignore
-    skills: list["Skill"] = Relationship( # type: ignore
+    belongs: Optional["Team"] = Relationship(back_populates="members") # type: ignore
+
+    skills: list["Skill"] = Relationship(
         back_populates="members",
         link_model=MemberSkillsLink,
     )
-    uploads: list["Upload"] = Relationship( # type: ignore
+    uploads: list["Upload"] = Relationship(
         back_populates="members",
         link_model=MemberUploadsLink,
     )
@@ -79,14 +80,14 @@ class Member(MemberBase, table=True):
 class MemberOut(MemberBase):
     id: uuid.UUID
     belongs_to: uuid.UUID
-    owner_of: int | None
+    owner_of:  uuid.UUID | None
 
 
 class SkillBase(SQLModel):
     name: str
     description: str
     display_name: str | None = None
-    managed: bool = False
+    is_public: bool = False
     tool_definition: dict[str, Any] | None = Field(
         default_factory=dict, sa_column=Column(JSON)
     )
@@ -121,6 +122,9 @@ class Skill(SkillBase, table=True):
     owner_id: uuid.UUID | None = Field(default=None, foreign_key="user.id", nullable=False)
     owner: Optional["User"] | None = Relationship(back_populates="skills") # type: ignore
 
+    team_id: uuid.UUID | None = Field(default=None, foreign_key="team.id", nullable=False)
+    team: Optional["Team"] | None = Relationship(back_populates="skills") # type: ignore
+    
 
 class SkillOut(SkillBase):
     id: uuid.UUID
@@ -162,6 +166,8 @@ class Upload(UploadBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     owner_id: uuid.UUID | None = Field(default=None, foreign_key="user.id", nullable=False)
     owner: Optional["User"] | None = Relationship(back_populates="uploads") # type: ignore
+    team_id: uuid.UUID = Field(foreign_key="team.id", nullable=False)
+    team: Optional["Team"] = Relationship(back_populates="uploads") # type: ignore
     members: list["Member"] = Relationship( # type: ignore
         back_populates="uploads",
         link_model=MemberUploadsLink, # type: ignore
@@ -170,6 +176,7 @@ class Upload(UploadBase, table=True):
     status: UploadStatus = Field(
         sa_column=Column(SQLEnum(UploadStatus), nullable=False)
     )
+    is_public: bool = Field(default=False)  # 是否公开，可供其他用户使用
     chunk_size: int
     chunk_overlap: int
 

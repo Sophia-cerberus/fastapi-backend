@@ -5,18 +5,18 @@ from sqlmodel import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models import (
-    Models,
+    Model,
 )
 
 
 async def sync_provider_models(
     session: AsyncSession, provider_id: uuid.UUID, config_models: list[dict[str, Any]]
-) -> list[Models]:
+) -> list[Model]:
     """
     同步配置文件中的模型到数据库
     """
     # 获取现有模型
-    statement = select(Models).where(Models.provider_id == provider_id)
+    statement = select(Model).where(Model.provider_id == provider_id)
     existing_models = await session.scalars(statement)
 
     existing_model_names = {model.ai_model_name for model in existing_models}
@@ -39,12 +39,12 @@ async def sync_provider_models(
             model.meta_ = meta_
         else:
             # 创建新模型
-            model = Models(
+            model = Model(
                 ai_model_name=model_name,
                 provider_id=provider_id,
                 categories=config_model["categories"],
                 capabilities=config_model.get("capabilities", []),
-                meta_=meta_,
+                meta=meta_,
             )
             session.add(model)
         instance.append(model)
