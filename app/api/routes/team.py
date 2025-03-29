@@ -7,7 +7,7 @@ from fastapi.responses import StreamingResponse
 from sqlmodel import select
 
 from app.api.dependencies import (
-    CurrentTeamAndUser, SessionDep, CurrentInstanceTeam,
+    SessionDep, CurrentInstanceTeam,
     ValidateCreateInTeam, ValidateUpdateOnTeam, CurrentUser,
     create_member_for_team
 )
@@ -63,7 +63,7 @@ async def read_team(team: CurrentInstanceTeam) -> Any:
 async def create_team(
     *,
     session: SessionDep,
-    current_team_and_user: CurrentTeamAndUser,
+    current_user: CurrentUser,
     team_in: TeamCreate,
     _: ValidateCreateInTeam
 ) -> Team:
@@ -71,7 +71,7 @@ async def create_team(
     Create new team and it's team leader
     """
     team = Team.model_validate(team_in, update={
-        "owner_id": current_team_and_user.user.id
+        "owner_id": current_user.id
     })
 
     session.add(team)
@@ -102,7 +102,7 @@ async def update_team(
 
 
 @router.delete("/{id}")
-async def delete_team(session: SessionDep, team: CurrentTeamAndUser) -> Any:
+async def delete_team(session: SessionDep, team: CurrentInstanceTeam) -> Any:
     """
     Delete a team.
     """

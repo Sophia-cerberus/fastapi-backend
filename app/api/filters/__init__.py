@@ -6,6 +6,5 @@ from .member import MemberFilter
 from .provider import ProviderFilter
 from .model import ModelFilter
 from .skill import SkillFilter
-from .subgraph import SubgraphFilter
 from .thread import ThreadFilter
 from .upload import UploadFilter

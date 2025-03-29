@@ -2,7 +2,7 @@ from fastapi import APIRouter
 
 from app.api.routes import (
     login, private, users, utils, apikey, team, graph, member, model,
-    provider, skill, subgraph, thread
+    provider, skill, thread
 )
 from app.core.config import settings
 
@@ -19,7 +19,6 @@ api_router.include_router(member.router)
 api_router.include_router(model.router)
 api_router.include_router(provider.router)
 api_router.include_router(skill.router)
-api_router.include_router(subgraph.router)
 api_router.include_router(thread.router)
 
 

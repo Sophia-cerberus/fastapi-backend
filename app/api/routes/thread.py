@@ -4,14 +4,10 @@ from typing import Any
 from fastapi import APIRouter
 from sqlmodel import select
 
-from app.api.dependencies import CurrentTeamAndUser, SessionDep, ValidateThreadOnRead
-from app.core.graph.checkpoint.utils import (
-    convert_checkpoint_tuple_to_messages,
-    get_checkpoint_tuples,
-)
+from app.api.dependencies import CurrentTeamAndUser, SessionDep, CurrentInstanceThread
+
 from app.api.models import (
     Message,
-    Team,
     Thread,
     ThreadCreate,
     ThreadOut,
@@ -53,23 +49,12 @@ async def read_threads(
 
 @router.get("/{id}", response_model=ThreadRead)
 async def read_thread(
-    thread: ValidateThreadOnRead
+    thread: CurrentInstanceThread
 ) -> Any:
     """
     Get thread and its last checkpoint by ID
     """
-    checkpoint_tuple = await get_checkpoint_tuples(str(thread.id))
-    if checkpoint_tuple:
-        messages = convert_checkpoint_tuple_to_messages(checkpoint_tuple)
-    else:
-        messages = []
-
-    return ThreadRead(
-        id=thread.id,
-        query=thread.query,
-        messages=messages,
-        updated_at=thread.updated_at,
-    )
+    return thread
 
 
 @router.post("/", response_model=ThreadOut)
@@ -97,7 +82,7 @@ async def create_thread(
 async def update_thread(
     *,
     session: SessionDep,
-    thread: ValidateThreadOnRead,
+    thread: CurrentInstanceThread,
     thread_in: ThreadUpdate,
 ) -> Any:
     """
@@ -112,36 +97,14 @@ async def update_thread(
 
 @router.delete("/{id}")
 async def delete_thread(
-    session: SessionDep, thread: ValidateThreadOnRead
+    session: SessionDep, thread: CurrentInstanceThread
 ) -> Any:
     """
     Delete a thread.
     """
-    
     for checkpoint in thread.checkpoints:
         session.delete(checkpoint)
 
     await session.delete(thread)
     await session.commit()
     return Message(message="Thread deleted successfully")
-
-
-@router.get("/public/{thread_id}", response_model=ThreadRead)
-async def read_thread_public(
-    thread: ValidateThreadOnRead
-) -> Any:
-    """
-    Get thread and its last checkpoint by ID
-    """
-    
-    checkpoint_tuple = await get_checkpoint_tuples(str(thread.id))
-    if checkpoint_tuple:
-        messages = convert_checkpoint_tuple_to_messages(checkpoint_tuple)
-    else:
-        messages = []
-    return ThreadRead(
-        id=thread.id,
-        query=thread.query,
-        messages=messages,
-        updated_at=thread.updated_at,
-    )

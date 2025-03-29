@@ -103,7 +103,6 @@ class User(UserBase, table=True):
     skills: list["Skill"] = Relationship(back_populates="owner")
     uploads: list["Upload"] = Relationship(back_populates="owner")
     graphs: list["Graph"] = Relationship(back_populates="owner")
-    subgraphs: list["Subgraph"] = Relationship(back_populates="owner")
     apikeys: list["ApiKey"] = Relationship(back_populates="owner")
     members: list["Member"] = Relationship(back_populates="owner")
     models: list["Model"] = Relationship(back_populates="owner")
@@ -196,17 +195,15 @@ class Team(TeamBase, table=True):
     name: str = Field(regex=r"^[a-zA-Z0-9_-]{1,64}$", unique=True)
     owner_id: uuid.UUID | None = Field(default=None, foreign_key="user.id", nullable=False)
     owner: User | None = Relationship(back_populates="teams")
+    workflow: str  # TODO:
+
     members: list["Member"] = Relationship(
         back_populates="belongs", sa_relationship_kwargs={"cascade": "delete"}
     )
-    workflow: str  # TODO:
     threads: list["Thread"] = Relationship(
         back_populates="team", sa_relationship_kwargs={"cascade": "delete"}
     )
     graphs: list["Graph"] = Relationship(
-        back_populates="team", sa_relationship_kwargs={"cascade": "delete"}
-    )
-    subgraphs: list["Subgraph"] = Relationship(
         back_populates="team", sa_relationship_kwargs={"cascade": "delete"}
     )
     apikeys: list["ApiKey"] = Relationship(
@@ -219,6 +216,9 @@ class Team(TeamBase, table=True):
         back_populates="team", sa_relationship_kwargs={"cascade": "delete"}
     )
     providers: list["ModelProvider"] = Relationship(
+        back_populates="team", sa_relationship_kwargs={"cascade": "delete"}
+    )
+    uploads: list["Upload"] = Relationship(
         back_populates="team", sa_relationship_kwargs={"cascade": "delete"}
     )
 
@@ -558,6 +558,10 @@ class Upload(UploadBase, table=True):
     )
     owner_id: uuid.UUID | None = Field(default=None, foreign_key="user.id", nullable=False)
     owner: User | None = Relationship(back_populates="uploads")
+
+    team_id: uuid.UUID = Field(foreign_key="team.id", nullable=False)
+    team: Team = Relationship(back_populates="uploads")
+
     members: list["Member"] = Relationship(
         back_populates="uploads",
         link_model=MemberUploadsLink,
@@ -715,7 +719,6 @@ class ModelOut(SQLModel):
     provider: ModelProviderOut
 
 
-
 # 新增一个用于创建模型的请求模型
 class ModelCreate(ModelsBase):
     meta_: dict[str, Any] | None = None
@@ -739,16 +742,23 @@ class GraphBase(SQLModel):
         default_factory=dict,
         sa_column=Column("metadata", JSONB, nullable=False, server_default="{}"),
     )
+    is_public: bool = Field(default=False)  # 是否公开，可供其他用户使用
 
 
 class GraphCreate(GraphBase):
     created_at: datetime
     updated_at: datetime
+    team_id: uuid.UUID
+    owner_id: uuid.UUID
+    parent: uuid.UUID | None = None
 
 
 class GraphUpdate(GraphBase):
     name: str | None = None
     updated_at: datetime
+    id: uuid.UUID | None = None
+    team_id: uuid.UUID | None = None
+    parent: uuid.UUID | None = None
 
 
 class Graph(GraphBase, table=True):
@@ -762,6 +772,9 @@ class Graph(GraphBase, table=True):
     owner: User | None = Relationship(back_populates="graphs")
     team_id: uuid.UUID = Field(foreign_key="team.id", nullable=False)
     team: Team = Relationship(back_populates="graphs")
+
+    parent: uuid.UUID | None = Field(default=None, index=True, foreign_key="graph.id", nullable=True)
+
     created_at: datetime | None = Field(
         sa_column=Column(
             DateTime(timezone=True),
@@ -780,9 +793,12 @@ class Graph(GraphBase, table=True):
         )
     )
 
-
 class GraphOut(GraphBase):
     id: uuid.UUID
+    owner_id: uuid.UUID
+    team_id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
 
 
 # ==============Api Keys=====================
@@ -825,68 +841,3 @@ class ApiKeyOutPublic(ApiKeyBase):
     id: uuid.UUID
     short_key: str
     created_at: datetime
-
-
-# ==============Subgraph=====================
-
-
-class SubgraphBase(SQLModel):
-    name: str = Field(regex=r"^[a-zA-Z0-9_-]{1,64}$")
-    description: str | None = None
-    config: dict[Any, Any] = Field(default_factory=dict, sa_column=Column(JSONB))
-    metadata_: dict[Any, Any] = Field(
-        default_factory=dict,
-        sa_column=Column("metadata", JSONB, nullable=False, server_default="{}"),
-    )
-    is_public: bool = Field(default=False)  # 是否公开，可供其他用户使用
-
-
-class SubgraphCreate(SubgraphBase):
-    created_at: datetime
-    updated_at: datetime
-    team_id: uuid.UUID
-
-
-class SubgraphUpdate(SubgraphBase):
-    name: str | None = None
-    updated_at: datetime
-    id: uuid.UUID | None = None
-    team_id: uuid.UUID | None = None
-
-
-class Subgraph(SubgraphBase, table=True):
-    id: uuid.UUID | None = Field(
-        default_factory=uuid.uuid4,
-        primary_key=True,
-        index=True,
-        nullable=False,
-    )
-    owner_id: uuid.UUID | None = Field(default=None, foreign_key="user.id", nullable=False)
-    owner: User | None = Relationship(back_populates="subgraphs")
-    team_id: uuid.UUID = Field(foreign_key="team.id", nullable=False)
-    team: Team = Relationship(back_populates="subgraphs")
-    created_at: datetime | None = Field(
-        sa_column=Column(
-            DateTime(timezone=True),
-            nullable=False,
-            default=func.now(),
-            server_default=func.now(),
-        )
-    )
-    updated_at: datetime | None = Field(
-        sa_column=Column(
-            DateTime(timezone=True),
-            nullable=False,
-            default=func.now(),
-            onupdate=func.now(),
-            server_default=func.now(),
-        )
-    )
-
-
-class SubgraphOut(SubgraphBase):
-    id: uuid.UUID
-    owner_id: uuid.UUID
-    team_id: uuid.UUID
-    created_at: datetime
-    updated_at: datetime
