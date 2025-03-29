@@ -2,14 +2,13 @@ from typing import Annotated
 import uuid
 
 from fastapi import Depends, HTTPException
-from sqlmodel import case, or_, select
+from sqlmodel import or_, select
 from sqlmodel.sql._expression_select_cls import SelectOfScalar
 
 from app.api.models import Upload, Team
 
 from .session import SessionDep
 from .team import CurrentTeamAndUser
-
 
 
 async def instance_statement(current_team_and_user: CurrentTeamAndUser) ->  SelectOfScalar[Upload]:
@@ -37,6 +36,7 @@ async def current_instance(
     if not upload:
         raise HTTPException(status_code=404, detail="Upload not found")
     return upload
+
 
 InstanceStatement = Annotated[Upload, Depends(instance_statement)]
 CurrentInstance = Annotated[Upload, Depends(current_instance)]

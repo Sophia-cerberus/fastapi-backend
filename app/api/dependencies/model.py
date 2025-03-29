@@ -3,7 +3,7 @@ from typing import Annotated, Union
 import uuid
 
 from fastapi import Depends, HTTPException, status
-from sqlmodel import or_, select, case
+from sqlmodel import or_, select
 from sqlmodel.sql._expression_select_cls import SelectOfScalar
 
 from app.api.models import ModelCreate, Team, Model, ModelUpdate
