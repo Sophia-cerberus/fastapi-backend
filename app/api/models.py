@@ -2,14 +2,14 @@ from datetime import datetime
 from typing import Any, Optional
 from enum import Enum
 import uuid
-from zoneinfo import ZoneInfo
 
 from sqlalchemy.dialects.postgresql import JSONB
 
 from pydantic import model_validator, EmailStr
 
 from sqlmodel import (
-    ARRAY, JSON, Column, DateTime, Field, PrimaryKeyConstraint, Relationship, SQLModel, String, UniqueConstraint, func, Enum as SQLEnum
+    ARRAY, JSON, Column, DateTime, Field, PrimaryKeyConstraint, Relationship, 
+    SQLModel, String, UniqueConstraint, func, Enum as SQLEnum
 )
 
 from app.core.security import security_manager
@@ -44,12 +44,11 @@ class NewPassword(SQLModel):
     new_password: str = Field(min_length=8, max_length=40)
 
 
-
 # ===============USER========================
 
 
 class UserBase(SQLModel):
-    email: str = Field(unique=True, index=True)
+    email: EmailStr = Field(unique=True, index=True)
     is_active: bool = True
     is_superuser: bool = False
     full_name: str | None = None
@@ -61,24 +60,21 @@ class UserCreate(UserBase):
     password: str
 
 
-# TODO replace email str with EmailStr when sqlmodel supports it
 class UserRegister(SQLModel):
-    email: str
+    email: EmailStr
     password: str
     full_name: str | None = None
 
 
 # Properties to receive via API on update, all are optional
-# TODO replace email str with EmailStr when sqlmodel supports it
 class UserUpdate(UserBase):
-    email: str | None = None  # type: ignore
+    email: EmailStr | None = None  # type: ignore
     password: str | None = None
 
 
-# TODO replace email str with EmailStr when sqlmodel supports it
 class UserUpdateMe(SQLModel):
     full_name: str | None = None
-    email: str | None = None
+    email: EmailStr | None = None
 
 
 class UpdatePassword(SQLModel):
@@ -221,7 +217,6 @@ class Team(TeamBase, table=True):
     uploads: list["Upload"] = Relationship(
         back_populates="team", sa_relationship_kwargs={"cascade": "delete"}
     )
-
 
 
 # Properties to return via API, id is always required
@@ -429,6 +424,7 @@ class Skill(SkillBase, table=True):
     team: Team = Relationship(back_populates="skills")
 
     is_public: Optional[bool] = Field(default=False, nullable=False)
+
 
 class SkillOut(SkillBase):
     id: uuid.UUID
@@ -793,15 +789,18 @@ class Graph(GraphBase, table=True):
         )
     )
 
+
 class GraphOut(GraphBase):
     id: uuid.UUID
     owner_id: uuid.UUID
     team_id: uuid.UUID
     created_at: datetime
     updated_at: datetime
+    parent: uuid.UUID
 
 
 # ==============Api Keys=====================
+
 
 class ApiKeyBase(SQLModel):
     description: str | None = "Default API Key Description"

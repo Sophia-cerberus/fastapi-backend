@@ -5,7 +5,6 @@ from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 
 from sqlmodel import select
 
-from app.api import crud
 from app.api.dependencies import (
     CurrentUser,
     SessionDep,
@@ -59,14 +58,21 @@ async def create_user(*, session: SessionDep, user_in: UserCreate, background_ta
     """
     Create new user.
     """
-    user = await crud.get_user_by_email(session=session, email=user_in.email)
+    statement = select(User).where(User.email == user_in.email)
+    user = await session.scalar(statement)
     if user:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="The user with this email already exists in the system."
         )
 
-    user = await crud.create_user(session=session, user_create=user_in)
+    user = User.model_validate(
+        user_in, update={"hashed_password": get_password_hash(user_in.password)}
+    )
+    session.add(user)
+    await session.commit()
+    await session.refresh(instance=user)
+
     if settings.emails_enabled and user_in.email:
         email_data = generate_new_account_email(
             email_to=user_in.email, username=user_in.email, password=user_in.password
@@ -104,21 +110,21 @@ async def update_user_me(
     """
     Update own user.
     """
-
     if user_in.email:
-        existing_user = await crud.get_user_by_email(session=session, email=user_in.email)
+        statement = select(User).where(User.email == user_in.email)
+        existing_user = await session.scalar(statement)
+
         if existing_user and existing_user.id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT, 
                 detail="User with this email already exists"
             )
 
-    user_data = user_in.model_dump(exclude_unset=True)
-    current_user.sqlmodel_update(user_data)
+    current_user.sqlmodel_update(user_in)
     session.add(current_user)
     await session.commit()
     await session.refresh(current_user)
-    return user_data
+    return user_in
 
 
 @router.patch("/me/password", response_model=Message)
@@ -173,15 +179,19 @@ async def register_user(session: SessionDep, user_in: UserRegister) -> Any:
     """
     Create new user without the need to be logged in.
     """
-    user = await crud.get_user_by_email(session=session, email=user_in.email)
-    if user:
+    statement = select(User).where(User.email == user_in.email)
+    if await session.scalar(statement):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, 
             detail="The user with this email already exists in the system"
         )
 
-    user_create = UserCreate.model_validate(user_in)
-    user = await crud.create_user(session=session, user_create=user_create)
+    user = User.model_validate(
+        user_in, update={"hashed_password": get_password_hash(user_in.password)}
+    )
+    session.add(user)
+    await session.commit()
+    await session.refresh(instance=user)
     return user
 
 
@@ -227,14 +237,21 @@ async def update_user(
         )
     
     if user_in.email:
-        existing_user = await crud.get_user_by_email(session=session, email=user_in.email)
+
+        statement = select(User).where(User.email == user_in.email)
+        existing_user = await session.scalar(statement)
         if existing_user and existing_user.id != user_id:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT, 
                 detail="User with this email already exists"
             )
 
-    user = await crud.update_user(session=session, db_user=user, user_in=user_in)
+    user.sqlmodel_update(user_in, update={
+        "hashed_password": get_password_hash(user_in.password)
+    })
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
     return user
 
 

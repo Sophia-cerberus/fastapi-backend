@@ -2,11 +2,9 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from sqlmodel import select
 
-from app.api.dependencies import SessionDep, CurrentInstanceProvider, CurrentTeamAndUser
 from app.core.providers import model_provider_manager
-from app.api.crud.provider import (
-    sync_provider_models,
-)
+
+from app.api.dependencies import SessionDep, CurrentInstanceProvider, CurrentTeamAndUser
 from app.api.models import (
     Message,
     ModelProvider,
@@ -113,6 +111,6 @@ async def sync_provider(
         )
 
     # 同步模型到数据库
-    synced_models = await sync_provider_models(session, provider.id, config_models)
+    # synced_models = await sync_provider_models(session, provider.id, config_models)
 
-    return [model.ai_model_name for model in synced_models]
+    return ...

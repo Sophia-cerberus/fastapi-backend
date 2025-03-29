@@ -7,7 +7,7 @@ from sqlmodel import select
 
 from app.core.config import settings
 from app.api.models import User, UserCreate
-from app.api import crud
+from app.core.security import get_password_hash
 
 dsn: PostgresDsn = settings.SQLALCHEMY_RUNNABLE_DATABASE_URI
 engine: AsyncEngine = create_async_engine(dsn.unicode_string())
@@ -36,4 +36,11 @@ async def init_db(session: AsyncSession) -> None:
             password=settings.FIRST_SUPERUSER_PASSWORD,
             is_superuser=True,
         )
-        user = await crud.create_user(session=session, user_create=user_in)
+        user = User.model_validate(
+            user_in, update={"hashed_password": get_password_hash(user_in.password)}
+        )
+        session.add(user)
+        await session.commit()
+        await session.refresh(instance=user)
+        return user
+

@@ -1,8 +1,8 @@
 from fastapi import APIRouter
 
 from app.api.routes import (
-    login, private, users, utils, apikey, team, graph, member, model,
-    provider, skill, thread
+    login, users, utils, apikey, team, graph, member, model,
+    provider, skill, thread, upload
 )
 from app.core.config import settings
 
@@ -20,7 +20,8 @@ api_router.include_router(model.router)
 api_router.include_router(provider.router)
 api_router.include_router(skill.router)
 api_router.include_router(thread.router)
+api_router.include_router(upload.router)
 
 
 if settings.ENVIRONMENT == "local":
-    api_router.include_router(private.router)
+    ...

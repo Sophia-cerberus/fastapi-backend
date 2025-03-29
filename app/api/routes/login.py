@@ -8,7 +8,6 @@ from fastapi.security import OAuth2PasswordRequestForm
 from pydantic_core import ValidationError
 from sqlmodel import select
 
-from app.api import crud
 from app.api.dependencies import CurrentUser, SessionDep, get_current_active_superuser
 from app.core import security
 from app.core.config import settings
@@ -147,8 +146,10 @@ async def reset_password(session: SessionDep, body: NewPassword) -> Message:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid token"
         )
-    user = await crud.get_user_by_email(session=session, email=email)
-    if not user:
+    
+    statement = select(User).where(User.email == email)
+
+    if not (user := await session.scalar(statement)):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="The user with this email does not exist in the system."
@@ -172,13 +173,12 @@ async def reset_password(session: SessionDep, body: NewPassword) -> Message:
     dependencies=[Depends(get_current_active_superuser)],
     response_class=HTMLResponse,
 )
-def recover_password_html_content(email: str, session: SessionDep) -> Any:
+async def recover_password_html_content(email: str, session: SessionDep) -> Any:
     """
     HTML Content for Password Recovery
     """
-    user = crud.get_user_by_email(session=session, email=email)
-
-    if not user:
+    statement = select(User).where(User.email == email)
+    if not (user := await session.scalar(statement)):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="The user with this username does not exist in the system.",
