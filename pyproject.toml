@@ -41,6 +41,8 @@ dependencies = [
     "argon2-cffi>=23.1.0",
     "crewai>=0.108.0",
     "langchain-mcp-adapters>=0.0.5",
+    "langchain-openai>=0.3.11",
+    "langchain-google-genai>=2.1.2",
 ]
 
 [tool.uv]
