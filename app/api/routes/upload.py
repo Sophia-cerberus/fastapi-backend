@@ -1,6 +1,7 @@
 from typing import Any
 
 from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi.responses import StreamingResponse
 
 from app.api.dependencies import (
     SessionDep, CurrentTeamAndUser, CurrentInstanceUpload, InstanceStatementUpload,
@@ -43,25 +44,17 @@ async def read_upload(upload: CurrentInstanceUpload) -> Any:
     return upload
 
 
-@router.post("/", response_model=UploadOut)
+@router.post("/")
 async def create_upload(
     *,
-    session: SessionDep, upload_in: UploadCreate, 
-    current_team_and_user: CurrentTeamAndUser, 
-    progress: CreateUploadDep,
+    upload_stream: CreateUploadDep,
 ) -> Any:
     """
     Create new upload.
     """
-    upload = Upload.model_validate(upload_in, update={
-        "file_type": str,
-        "file_path": str,
-        "file_size": float
-    })
-    session.add(upload)
-    await session.commit()
-    await session.refresh(upload)
-    return upload
+    return StreamingResponse(upload_stream, media_type="text/event-stream")
+
+
 
 @router.put("/{id}", response_model=UploadOut)
 async def update_upload(

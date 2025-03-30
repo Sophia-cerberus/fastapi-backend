@@ -99,8 +99,9 @@ class Settings(BaseSettings):
     AWS_ACCESS_KEY_ID: str
     AWS_SECRET_ACCESS_KEY: str 
     AWS_S3_ENDPOINT_URL: str
-    S3_BUCKET_NAME: str
-    S3_BUFFER_SIZE: int = 5 * 1024 * 1024  # 5MB 分块大小
+    AWS_S3_BUCKET_NAME: str
+    AWS_S3_BUFFER_SIZE: int = 5 * 1024 * 1024  # 5MB 分块大小
+    AWS_S3_UPLOAD_PREFIX: str
 
     @model_validator(mode="after")
     def _set_default_emails_from(self) -> Self:

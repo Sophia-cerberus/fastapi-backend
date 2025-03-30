@@ -1,14 +1,18 @@
-from json import dumps
+import hashlib
+from json import dumps, loads
 from typing import Annotated, AsyncGenerator
 import uuid
+import magic
+import os
 
-from fastapi import Depends, File, HTTPException, UploadFile
+from fastapi import Depends, File, Form, HTTPException, UploadFile
 from sqlmodel import or_, select
 from sqlmodel.sql._expression_select_cls import SelectOfScalar
 
 from app.api.models import Upload, Team, UploadCreate
 from app.core.storage.s3 import StorageClient
 from app.core.config import settings
+from app.core.string import uuid_8
 
 from .session import SessionDep
 from .team import CurrentTeamAndUser
@@ -41,25 +45,67 @@ async def current_instance(
     return upload
 
 
-async def create_upload(
-    storage_client: StorageClient,
-    file: UploadFile = File(...)
-) -> AsyncGenerator[str, None]:
+def get_mime_type(chunk_size: bytes) -> str:
+    mime = magic.Magic(mime=True)
+    return mime.from_buffer(buf=chunk_size)
+
+
+async def get_storage_client() -> AsyncGenerator[StorageClient, None]:
+    async with StorageClient() as client:
+        yield client
+
+
+StorageClientDep = Annotated[StorageClient, Depends(get_storage_client)]
+
+
+async def upload_create_form(
+    description: str = Form(...),
+    chunk_size: int = Form(...),
+    chunk_overlap: int = Form(...)
+) -> UploadCreate:
     
-    buffer_size = settings.S3_BUFFER_SIZE
+    return UploadCreate(
+        description=description,
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap
+    )
+
+async def create_upload(
+    session: SessionDep,
+    current_team_and_user: CurrentTeamAndUser,
+    storage_client: StorageClientDep,
+    upload_in: UploadCreate = Depends(upload_create_form), 
+    file: UploadFile = File(...)
+) -> AsyncGenerator:
+    
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await storage_client.__aexit__(exc_type, exc_val, exc_tb)
+
+    buffer_size: int = settings.AWS_S3_BUFFER_SIZE
+    bucket_name: str = settings.AWS_S3_BUCKET_NAME
     buffer: bytearray = bytearray()
     part_num: int = 1
     transferred_bytes: float = 0.0
-    file_path: str
-    bucket_name: str
+
+    file_path: str = os.path.join(
+        settings.AWS_S3_UPLOAD_PREFIX,
+        str(current_team_and_user.team.id),
+        str(current_team_and_user.user.id),
+        uuid_8()
+    )
+
     upload_id: str | None = None
     parts: list = []
 
     while 1:
         file_chunk = await file.read(buffer_size)
+
         if not file_chunk:
             break
 
+        if not transferred_bytes:
+            file_type = get_mime_type(file_chunk)
+        
         buffer.extend(file_chunk)
         transferred_bytes += len(file_chunk)
 
@@ -74,21 +120,48 @@ async def create_upload(
             )
             part_num += 1
             buffer.clear()
-            yield dumps({
-                "upload_id": upload_id,
-                "status": "IN_PROGRESS", 
-                "transferred_bytes": transferred_bytes
-            })
-
-    file_url: str = await storage_client.complete_upload(
+            yield dumps(
+                {
+                    "status": "IN_PROGRESS", 
+                    "transferred_bytes": transferred_bytes,
+                    "data": None
+                }, ensure_ascii=False, indent=4
+            )
+    if buffer:  
+        upload_id, parts = await storage_client.upload_chunk(
+            bucket_name=bucket_name, 
+            remote_path=file_path,
+            file_chunk=buffer,
+            part_num=part_num,
+            upload_id=upload_id,
+            parts=parts,
+        )
+    complete_upload_path: str = await storage_client.complete_upload(
         remote_path=file_path,
         upload_id=upload_id,
         parts=parts,
         bucket_name=bucket_name,
     )
-    yield dumps({"status": "IS_COMPLETED", "file_path": file_url})
+    upload = Upload.model_validate(upload_in, update={
+        "name": file.filename,
+        "file_type": file_type,
+        "file_path": complete_upload_path,
+        "file_size": transferred_bytes,
+        "team_id": current_team_and_user.team.id,
+        "owner_id": current_team_and_user.user.id,
+        "status": False
+    })
+    session.add(upload)
+    await session.commit()
+    await session.refresh(upload)
+    yield dumps({
+        "status": "completed",
+        "transferred_bytes": transferred_bytes,
+        "data": loads(upload.model_dump_json())
+    }, ensure_ascii=False, indent=4)
+    return
 
 
 InstanceStatement = Annotated[Upload, Depends(instance_statement)]
 CurrentInstance = Annotated[Upload, Depends(current_instance)]
-CreateUploadDep = Annotated[Upload, Depends(create_upload)]
+CreateUploadDep = Annotated[AsyncGenerator, Depends(create_upload)]

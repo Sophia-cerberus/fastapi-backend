@@ -1,3 +1,4 @@
+from typing import Union
 import aioboto3
 from botocore.exceptions import ClientError, NoCredentialsError
 from app.core.config import settings
@@ -32,18 +33,18 @@ class StorageClient:
             await self.s3_client.create_bucket(Bucket=bucket_name)
 
     async def upload_chunk(
-        self, bucket_name, remote_path, file_chunk, part_num, upload_id=None, parts=None
+        self, bucket_name, remote_path, file_chunk, part_num, upload_id: Union[str, None] = None, parts = None
     ):
         
         parts = parts or []
-        self.ensure_bucket_exists(bucket_name=bucket_name)
+        await self.ensure_bucket_exists(bucket_name=bucket_name)
 
         try:
             if upload_id is None:
                 response = await self.s3_client.create_multipart_upload(
                     Bucket=bucket_name, Key=remote_path
                 )
-                upload_id = response["UploadID"]
+                upload_id = response["UploadId"]
 
             response = await self.s3_client.upload_part(
                 Bucket=bucket_name,
@@ -62,9 +63,9 @@ class StorageClient:
             else:
                 raise ValueError(f"Unexpected error: {e}")
         except NoCredentialsError as e:
-            raise ClientError(f"Unable to locate credentials: {e}")
+            raise NoCredentialsError(f"Unable to locate credentials: {e}")
         except Exception as e:
-            return f"{UNEXPECTED_ERROR_MESSAGE}: {str(e)}"
+            raise Exception(f"{UNEXPECTED_ERROR_MESSAGE}: {str(e)}")
         
     async def complete_upload(self, bucket_name, remote_path, upload_id, parts):
         try:
@@ -80,11 +81,11 @@ class StorageClient:
             if error_code == "403":
                 raise ValueError(f"Access denied: {e}")
             else:
-                raise ValueError(f"Unexpected error: {e}")
+                raise ValueError(f"Unexpected error: {e}") 
         except NoCredentialsError as e:
-            raise ClientError(f"Unable to locate credentials: {e}")
+            raise NoCredentialsError(f"Unable to locate credentials: {e}")
         except Exception as e:
-            raise ClientError(f"{UNEXPECTED_ERROR_MESSAGE}: {str(e)}")
+            raise Exception(f"{UNEXPECTED_ERROR_MESSAGE}: {str(e)}")
 
     async def abort_upload(self, bucket_name, remote_path, upload_id):
         try:
@@ -101,9 +102,9 @@ class StorageClient:
             else:
                 raise ValueError(f"Unexpected error: {e}")
         except NoCredentialsError as e:
-            raise ClientError(f"Unable to locate credentials: {e}")
+            raise NoCredentialsError(f"Unable to locate credentials: {e}")
         except Exception as e:
-            raise ClientError(f"{UNEXPECTED_ERROR_MESSAGE}: {str(e)}")
+            raise Exception(f"{UNEXPECTED_ERROR_MESSAGE}: {str(e)}")
 
     async def stat_object(self, bucket_name, remote_path):
         try:
@@ -116,9 +117,9 @@ class StorageClient:
             else:
                 raise ValueError(f"Unexpected error: {e}")
         except NoCredentialsError as e:
-            raise ClientError(f"Unable to locate credentials: {e}")
+            raise NoCredentialsError(f"Unable to locate credentials: {e}")
         except Exception as e:
-            raise ClientError(f"{UNEXPECTED_ERROR_MESSAGE}: {str(e)}")
+            raise Exception(f"{UNEXPECTED_ERROR_MESSAGE}: {str(e)}")
     
     def _parse_path(self, remote_path):
         parts = remote_path.split("/", 1)
@@ -143,6 +144,6 @@ class StorageClient:
             else:
                 raise ValueError(f"Unexpected error: {e}")
         except NoCredentialsError as e:
-            raise ClientError(f"Unable to locate credentials: {e}")
+            raise NoCredentialsError(f"Unable to locate credentials: {e}")
         except Exception as e:
-            raise ClientError(f"{UNEXPECTED_ERROR_MESSAGE}: {str(e)}")
+            raise Exception(f"{UNEXPECTED_ERROR_MESSAGE}: {str(e)}")

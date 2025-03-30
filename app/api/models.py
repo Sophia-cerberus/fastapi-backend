@@ -518,11 +518,7 @@ class Write(SQLModel, table=True):
 
 
 class UploadBase(SQLModel):
-    name: str
     description: str
-    file_type: str
-    file_path: str
-    file_size: float
 
 
 class UploadCreate(UploadBase):
@@ -538,12 +534,6 @@ class UploadUpdate(UploadBase):
     last_modified: datetime
 
 
-class UploadStatus(str, Enum):
-    IN_PROGRESS = "In Progress"
-    COMPLETED = "Completed"
-    FAILED = "Failed"
-
-
 class Upload(UploadBase, table=True):
     id: uuid.UUID | None = Field(
         default_factory=uuid.uuid4,
@@ -551,6 +541,8 @@ class Upload(UploadBase, table=True):
         index=True,
         nullable=False,
     )
+    name: str
+
     owner_id: uuid.UUID | None = Field(default=None, foreign_key="user.id", nullable=False)
     owner: User | None = Relationship(back_populates="uploads")
 
@@ -562,10 +554,8 @@ class Upload(UploadBase, table=True):
         link_model=MemberUploadsLink,
     )
     last_modified: datetime = Field(default_factory=lambda: datetime.now())
-    status: UploadStatus = Field(
-        sa_column=Column(SQLEnum(UploadStatus), nullable=False)
-    )
-    is_build = bool | None = Field(default=False, nullable=False)
+    status: bool = Field(default=False, nullable=False)
+    is_build: bool = Field(default=False, nullable=False)
     chunk_size: int
     chunk_overlap: int
 
@@ -574,7 +564,6 @@ class UploadOut(UploadBase):
     id: uuid.UUID
     name: str
     last_modified: datetime
-    status: UploadStatus
     owner_id: uuid.UUID | None = Field(default=None, foreign_key="user.id", nullable=False)
     file_type: str
     file_path: str

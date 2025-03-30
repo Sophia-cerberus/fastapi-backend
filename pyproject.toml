@@ -44,6 +44,7 @@ dependencies = [
     "langchain-openai>=0.3.11",
     "langchain-google-genai>=2.1.2",
     "aioboto3>=14.1.0",
+    "python-magic>=0.4.27",
 ]
 
 [tool.uv]
