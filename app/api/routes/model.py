@@ -1,7 +1,6 @@
 from typing import Any
 
 from fastapi import APIRouter
-from sqlmodel import select
 
 from app.api.dependencies import SessionDep, CurrentInstanceModel, CurrentTeamAndUser, ValidateUpdateInModel, InstanceStatementModel
 from app.api.models import Message, ModelCreate, Model, ModelOut, ModelUpdate

@@ -41,7 +41,8 @@ from .user import (
 )
 from .upload import (
     CurrentInstance as CurrentInstanceUpload,
-    InstanceStatement as InstanceStatementUpload
+    InstanceStatement as InstanceStatementUpload,
+    CreateUploadDep
 )
 from .thread import (
     CurrentInstance as CurrentInstanceThread,

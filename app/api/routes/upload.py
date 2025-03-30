@@ -1,13 +1,13 @@
 from typing import Any
 
 from fastapi import APIRouter, UploadFile, File, HTTPException
-from sqlmodel import select, or_
 
 from app.api.dependencies import (
-    SessionDep, CurrentTeamAndUser, CurrentInstanceUpload, InstanceStatementUpload
+    SessionDep, CurrentTeamAndUser, CurrentInstanceUpload, InstanceStatementUpload,
+    CreateUploadDep
 )
 
-from app.api.models import Upload, UploadCreate, UploadOut, UploadUpdate, Message, Team
+from app.api.models import Upload, UploadCreate, UploadOut, UploadUpdate, Message
 # from app.services.vector_store import get_embedding, search_similar_vectors
 
 from fastapi_pagination.ext.sqlmodel import paginate
@@ -46,18 +46,17 @@ async def read_upload(upload: CurrentInstanceUpload) -> Any:
 @router.post("/", response_model=UploadOut)
 async def create_upload(
     *,
-    session: SessionDep,
-    current_team_and_user: CurrentTeamAndUser,
-    upload_in: UploadCreate,
-    file: UploadFile = File(...),
+    session: SessionDep, upload_in: UploadCreate, 
+    current_team_and_user: CurrentTeamAndUser, 
+    progress: CreateUploadDep,
 ) -> Any:
     """
     Create new upload.
     """
     upload = Upload.model_validate(upload_in, update={
-        "file_name": file.filename,
-        "team_id": current_team_and_user.team.id,
-        "owner_id": current_team_and_user.user.id,
+        "file_type": str,
+        "file_path": str,
+        "file_size": float
     })
     session.add(upload)
     await session.commit()
