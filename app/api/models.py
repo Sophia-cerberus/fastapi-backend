@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, List, Optional
 from enum import Enum
 import uuid
 
@@ -11,6 +11,7 @@ from sqlmodel import (
     ARRAY, JSON, Column, DateTime, Field, PrimaryKeyConstraint, Relationship, 
     SQLModel, String, UniqueConstraint, func, Enum as SQLEnum
 )
+from pgvector.sqlalchemy import Vector
 
 from app.core.security import security_manager
 from app.core.graph.messages import ChatResponse
@@ -554,12 +555,15 @@ class Upload(UploadBase, table=True):
     )
     last_modified: datetime = Field(default_factory=lambda: datetime.now())
     status: bool = Field(default=False, nullable=False)
-    is_build: bool = Field(default=False, nullable=False)
     chunk_size: int
     chunk_overlap: int
     file_type: str
     file_path: str
     file_size: float
+    embedding: List[float] = Field(
+        sa_column=Column(Vector(768), nullable=True),
+        default=None
+    )
 
 
 class UploadOut(UploadBase):

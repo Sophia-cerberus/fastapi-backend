@@ -42,7 +42,8 @@ from .user import (
 from .upload import (
     CurrentInstance as CurrentInstanceUpload,
     InstanceStatement as InstanceStatementUpload,
-    create_upload as create_upload_dep
+    create_upload as create_upload_dep,
+    create_download as create_download_dep
 )
 from .thread import (
     CurrentInstance as CurrentInstanceThread,

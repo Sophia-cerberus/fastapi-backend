@@ -2,10 +2,9 @@ import asyncio
 from json import loads
 from typing import Annotated, AsyncGenerator
 import uuid
-import magic
 import os
 
-from fastapi import Depends, File, Form, HTTPException, UploadFile
+from fastapi import Depends, File, Form, HTTPException, UploadFile, status
 from sqlmodel import or_, select
 from sqlmodel.sql._expression_select_cls import SelectOfScalar
 
@@ -45,11 +44,6 @@ async def current_instance(
     return upload
 
 
-def get_mime_type(chunk_size: bytes) -> str:
-    mime = magic.Magic(mime=True)
-    return mime.from_buffer(buf=chunk_size)
-
-
 async def get_storage_client() -> AsyncGenerator[StorageClient, None]:
     async with StorageClient() as client:
         yield client
@@ -79,11 +73,11 @@ async def create_upload(
     file: UploadFile = File(...),
 ) -> AsyncGenerator:
     
-    buffer_size: int = settings.AWS_S3_BUFFER_SIZE
+    buffer_size: int = settings.AWS_S3_UPLOAD_BUFFER
     bucket_name: str = settings.AWS_S3_BUCKET_NAME
     buffer: bytearray = bytearray()
     part_num: int = 1
-    transferred_bytes: float = 0.0
+    transferred_bytes: int = 0
 
     file_name, file_ext = os.path.splitext(file.filename)
     file_path: str = os.path.join(
@@ -98,9 +92,6 @@ async def create_upload(
     
     while (file_chunk := await file.read(buffer_size)):
 
-        if not transferred_bytes:
-            file_type = get_mime_type(file_chunk)
-        
         buffer.extend(file_chunk)
         transferred_bytes += len(file_chunk)
 
@@ -118,7 +109,8 @@ async def create_upload(
             await queue.put({
                 "status": "IN_PROGRESS", 
                 "transferred_bytes": transferred_bytes,
-                "data": None
+                "data": None,
+                "total_size": file.size
             })
     if buffer:  
         upload_id, parts = await storage_client.upload_chunk(
@@ -137,9 +129,9 @@ async def create_upload(
     )
     upload = Upload.model_validate(upload_in, update={
         "name": file.filename,
-        "file_type": file_type,
+        "file_type": file.content_type,
         "file_path": complete_upload_path,
-        "file_size": transferred_bytes,
+        "file_size": file.size,
         "team_id": current_team_and_user.team.id,
         "owner_id": current_team_and_user.user.id,
         "status": False
@@ -150,7 +142,58 @@ async def create_upload(
     await queue.put({
         "status": "COMPLETED",
         "transferred_bytes": transferred_bytes,
-        "data": loads(upload.model_dump_json())
+        "data": loads(upload.model_dump_json()),
+        "total_size": file.size
+    })
+
+
+async def create_download(
+    session: SessionDep,
+    storage_client: StorageClientDep,
+    queue: asyncio.Queue,
+    upload: Upload
+) -> AsyncGenerator:
+
+    bucket_name: str = settings.AWS_S3_BUCKET_NAME
+    remote_path: str = upload.file_path
+
+    response = await storage_client.stat_object(
+        bucket_name=bucket_name,
+        remote_path=remote_path
+    )
+    total_bytes = response.get("ContentLength", 0)
+
+    transferred_bytes = 0
+
+    file_obj = await storage_client.get_object(
+        bucket_name=bucket_name,
+        remote_path=remote_path,
+        transferred_bytes=transferred_bytes
+    )
+    if not (body := file_obj.get("Body", None)):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"S3 client has no data body on {upload.id}"
+        )
+    
+    while chunk := await body.read(settings.AWS_S3_DOWNLOAD_BUFFER):
+
+        transferred_bytes += len(chunk)
+
+        await queue.put({
+            "status": "IN_PROGRESS", 
+            "transferred_bytes": transferred_bytes,
+            "total_size": total_bytes
+        })
+
+    upload.status = True
+    session.add(upload)
+    await session.commit()
+    await session.refresh(upload)
+    await queue.put({
+        "status": "COMPLETED",
+        "transferred_bytes": transferred_bytes,
+        "total_size": total_bytes
     })
 
 

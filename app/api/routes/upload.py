@@ -8,7 +8,7 @@ from fastapi.responses import StreamingResponse
 
 from app.api.dependencies import (
     SessionDep, CurrentTeamAndUser, CurrentInstanceUpload, InstanceStatementUpload,
-    create_upload_dep
+    create_upload_dep, create_download_dep
 )
 
 from app.api.dependencies.upload import StorageClientDep, upload_create_form
@@ -55,7 +55,7 @@ async def create_upload(
     current_team_and_user: CurrentTeamAndUser,
     storage_client: StorageClientDep,
     upload_in: UploadCreate = Depends(upload_create_form), 
-    file: UploadFile = File(...)
+    file: UploadFile = File(...),
 ) -> Any:
     """
     Create new upload.
@@ -118,10 +118,38 @@ async def delete_upload(
 
 
 @router.get("/{id}/vector")
-async def build_file_to_vector():
-    ...
+async def build_file_to_vector(
+    session: SessionDep,
+    storage_client: StorageClientDep,
+    upload: CurrentInstanceUpload
+) -> Any:
+    
+    queue = asyncio.Queue()  # 创建队列
+        
+    background_task = await create_download_dep(
+        session=session, 
+        storage_client=storage_client, 
+        upload=upload,
+        queue=queue
+    )
+
+    async def stream_progress():
+        while 1:
+            progress = await queue.get()
+            yield dumps(progress, ensure_ascii=False, indent=4)
+
+            if progress["status"] == "COMPLETED":
+                break
+
+    return StreamingResponse(
+        content=stream_progress(), media_type="text/event-stream",
+        background=background_task
+    )
+
 
 
 @router.post("/{id}/search")
-async def search_file_in_vector():
-    ...
+async def search_file_in_vector(
+    upload: CurrentInstanceUpload
+):
+    return
