@@ -2,9 +2,8 @@ import asyncio
 from datetime import datetime
 from json import dumps
 from typing import Any
-import uuid
 
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
+from fastapi import APIRouter, Depends, UploadFile, File
 from fastapi.responses import StreamingResponse
 
 from app.api.dependencies import (

@@ -16,7 +16,6 @@ class StorageClient:
         self.endpoint_url = settings.AWS_S3_ENDPOINT_URL
 
     async def __aenter__(self):
-        """异步上下文管理，创建 S3 客户端"""
         self.s3_client = await self.s3_session.client(
             "s3", endpoint_url=self.endpoint_url
         ).__aenter__()
@@ -121,18 +120,6 @@ class StorageClient:
         except Exception as e:
             raise Exception(f"{UNEXPECTED_ERROR_MESSAGE}: {str(e)}")
     
-    def _parse_path(self, remote_path):
-        parts = remote_path.split("/", 1)
-        if len(parts) == 2:
-            return parts[0], parts[1]
-        else:
-            raise ValueError(
-                """
-                Invalid remote path format.
-                Expected format 'bucket-name/path/file'
-            """
-            )
-
     async def get_object(self, bucket_name, remote_path, transferred_bytes=0):
         range_param = 'bytes={}-'.format(transferred_bytes)
         try:
