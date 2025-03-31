@@ -553,13 +553,25 @@ class Upload(UploadBase, table=True):
         back_populates="uploads",
         link_model=MemberUploadsLink,
     )
-    last_modified: datetime = Field(default_factory=lambda: datetime.now())
+    last_modified: datetime = Field(default_factory=lambda: datetime.now(), nullable=False)
     status: bool = Field(default=False, nullable=False)
-    chunk_size: int
-    chunk_overlap: int
-    file_type: str
-    file_path: str
-    file_size: float
+    chunk_size: int = Field(nullable=False)
+    chunk_overlap: int = Field(nullable=False)
+    file_type: str = Field(nullable=False)
+    file_path: str = Field(nullable=False)
+    file_size: float = Field(nullable=False)
+
+
+class Document(SQLModel, table=True):
+    id: uuid.UUID | None = Field(
+        default_factory=uuid.uuid4,
+        primary_key=True,
+        index=True,
+        nullable=False,
+    )
+    upload_id: uuid.UUID = Field(default=None, foreign_key="upload.id", nullable=False)
+    chunk_index: int = Field(nullable=False)
+    text_content: str = Field(nullable=False)
     embedding: List[float] = Field(
         sa_column=Column(Vector(768), nullable=True),
         default=None

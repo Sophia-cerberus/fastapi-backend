@@ -9,7 +9,7 @@ UNEXPECTED_ERROR_MESSAGE = "An unexpected error occurred"
 class StorageClient:
 
     def __init__(self):
-        self.s3_session = aioboto3.Session(
+        self.s3_session: aioboto3.Session = aioboto3.Session(
             aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
             aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
         )

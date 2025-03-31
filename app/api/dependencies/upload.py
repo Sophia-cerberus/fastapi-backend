@@ -1,6 +1,6 @@
 import asyncio
 from json import loads
-from typing import Annotated, AsyncGenerator
+from typing import Annotated, AsyncGenerator, Literal
 import uuid
 import os
 
@@ -12,6 +12,7 @@ from app.api.models import Upload, Team, UploadCreate
 from app.core.storage.s3 import StorageClient
 from app.core.config import settings
 from app.core.string import uuid_8
+from app.core.rag.vectorization import chunk_to_vector
 
 from .session import SessionDep
 from .team import CurrentTeamAndUser
@@ -146,7 +147,6 @@ async def create_upload(
         "total_size": file.size
     })
 
-
 async def create_download(
     session: SessionDep,
     storage_client: StorageClientDep,
@@ -156,12 +156,10 @@ async def create_download(
 
     bucket_name: str = settings.AWS_S3_BUCKET_NAME
     remote_path: str = upload.file_path
+    file_name: str = upload.name
 
-    response = await storage_client.stat_object(
-        bucket_name=bucket_name,
-        remote_path=remote_path
-    )
-    total_bytes = response.get("ContentLength", 0)
+    obj = await storage_client.stat_object(bucket_name=bucket_name, remote_path=remote_path)
+    total_bytes = obj.get("ContentLength", 0)
 
     transferred_bytes = 0
 
@@ -176,9 +174,26 @@ async def create_download(
             detail=f"S3 client has no data body on {upload.id}"
         )
     
+    file_type = upload.file_type
+    
+    buffer: bytearray = bytearray()
+    overlap: bytes = b""
+    chunk_index: int = 0
+
     while chunk := await body.read(settings.AWS_S3_DOWNLOAD_BUFFER):
 
+        buffer.extend(overlap + chunk)
         transferred_bytes += len(chunk)
+
+        chunk_index = await chunk_to_vector(
+            session=session,
+            buffer=buffer,
+            file=upload,
+            chunk_index=chunk_index
+        )
+
+        overlap = buffer[-upload.chunk_overlap:] if overlap > 0 else b""
+        buffer.clear()
 
         await queue.put({
             "status": "IN_PROGRESS", 
@@ -186,7 +201,9 @@ async def create_download(
             "total_size": total_bytes
         })
 
-    upload.status = True
+    upload.sqlmodel_update({
+        "status": True
+    })
     session.add(upload)
     await session.commit()
     await session.refresh(upload)
