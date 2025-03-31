@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime
 from json import dumps
 from typing import Any
 import uuid
@@ -76,7 +77,7 @@ async def create_upload(
             progress = await queue.get()
             yield dumps(progress, ensure_ascii=False, indent=4)
 
-            if progress["status"] == "completed":
+            if progress["status"] == "COMPLETED":
                 break
 
     return StreamingResponse(
@@ -96,7 +97,9 @@ async def update_upload(
     """
     Update upload by ID.
     """        
-    upload.sqlmodel_update(upload_in)
+    upload.sqlmodel_update(upload_in, update={
+        "last_modified": datetime.now()
+    })
     session.add(upload)
     await session.commit()
     await session.refresh(upload)
@@ -116,18 +119,11 @@ async def delete_upload(
     return Message(message="Upload deleted successfully")
 
 
-@router.post("/{upload_id}/search")
-async def search_upload(
-    upload_id: int,
-    query: str,
-    session: SessionDep,
-):
-    """
-    Perform vector search in an uploaded file.
-    """
-    upload = session.get(Upload, upload_id)
-    if not upload:
-        raise HTTPException(status_code=404, detail="Upload not found")
+@router.get("/{id}/vector")
+async def build_file_to_vector():
+    ...
 
-    # results = search_similar_vectors(upload.embedding, query)
-    # return {"results": results}
+
+@router.post("/{id}/search")
+async def search_file_in_vector():
+    ...

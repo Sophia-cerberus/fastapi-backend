@@ -1,5 +1,5 @@
 import asyncio
-from json import dumps, loads
+from json import loads
 from typing import Annotated, AsyncGenerator
 import uuid
 import magic
@@ -148,7 +148,7 @@ async def create_upload(
     await session.commit()
     await session.refresh(upload)
     await queue.put({
-        "status": "completed",
+        "status": "COMPLETED",
         "transferred_bytes": transferred_bytes,
         "data": loads(upload.model_dump_json())
     })
@@ -156,4 +156,3 @@ async def create_upload(
 
 InstanceStatement = Annotated[Upload, Depends(instance_statement)]
 CurrentInstance = Annotated[Upload, Depends(current_instance)]
-# CreateUploadDep = Annotated[AsyncGenerator, Depends(create_upload)]

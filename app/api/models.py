@@ -527,7 +527,6 @@ class UploadCreate(UploadBase):
 
 
 class UploadUpdate(UploadBase):
-    name: str | None = None
     description: str | None = None
     chunk_size: int | None = None
     chunk_overlap: int | None = None
