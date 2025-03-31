@@ -1,4 +1,4 @@
-import hashlib
+import asyncio
 from json import dumps, loads
 from typing import Annotated, AsyncGenerator
 import uuid
@@ -74,34 +74,29 @@ async def create_upload(
     session: SessionDep,
     current_team_and_user: CurrentTeamAndUser,
     storage_client: StorageClientDep,
+    queue: asyncio.Queue,
     upload_in: UploadCreate = Depends(upload_create_form), 
-    file: UploadFile = File(...)
+    file: UploadFile = File(...),
 ) -> AsyncGenerator:
     
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await storage_client.__aexit__(exc_type, exc_val, exc_tb)
-
     buffer_size: int = settings.AWS_S3_BUFFER_SIZE
     bucket_name: str = settings.AWS_S3_BUCKET_NAME
     buffer: bytearray = bytearray()
     part_num: int = 1
     transferred_bytes: float = 0.0
 
+    file_name, file_ext = os.path.splitext(file.filename)
     file_path: str = os.path.join(
         settings.AWS_S3_UPLOAD_PREFIX,
         str(current_team_and_user.team.id),
         str(current_team_and_user.user.id),
-        uuid_8()
+        f"{file_name}_{uuid_8()}{file_ext}"
     )
 
     upload_id: str | None = None
     parts: list = []
-
-    while 1:
-        file_chunk = await file.read(buffer_size)
-
-        if not file_chunk:
-            break
+    
+    while (file_chunk := await file.read(buffer_size)):
 
         if not transferred_bytes:
             file_type = get_mime_type(file_chunk)
@@ -120,13 +115,11 @@ async def create_upload(
             )
             part_num += 1
             buffer.clear()
-            yield dumps(
-                {
-                    "status": "IN_PROGRESS", 
-                    "transferred_bytes": transferred_bytes,
-                    "data": None
-                }, ensure_ascii=False, indent=4
-            )
+            await queue.put({
+                "status": "IN_PROGRESS", 
+                "transferred_bytes": transferred_bytes,
+                "data": None
+            })
     if buffer:  
         upload_id, parts = await storage_client.upload_chunk(
             bucket_name=bucket_name, 
@@ -154,14 +147,13 @@ async def create_upload(
     session.add(upload)
     await session.commit()
     await session.refresh(upload)
-    yield dumps({
+    await queue.put({
         "status": "completed",
         "transferred_bytes": transferred_bytes,
         "data": loads(upload.model_dump_json())
-    }, ensure_ascii=False, indent=4)
-    return
+    })
 
 
 InstanceStatement = Annotated[Upload, Depends(instance_statement)]
 CurrentInstance = Annotated[Upload, Depends(current_instance)]
-CreateUploadDep = Annotated[AsyncGenerator, Depends(create_upload)]
+# CreateUploadDep = Annotated[AsyncGenerator, Depends(create_upload)]

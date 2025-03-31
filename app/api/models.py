@@ -558,6 +558,9 @@ class Upload(UploadBase, table=True):
     is_build: bool = Field(default=False, nullable=False)
     chunk_size: int
     chunk_overlap: int
+    file_type: str
+    file_path: str
+    file_size: float
 
 
 class UploadOut(UploadBase):

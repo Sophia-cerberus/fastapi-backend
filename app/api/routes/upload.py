@@ -1,13 +1,17 @@
+import asyncio
+from json import dumps
 from typing import Any
+import uuid
 
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from fastapi.responses import StreamingResponse
 
 from app.api.dependencies import (
     SessionDep, CurrentTeamAndUser, CurrentInstanceUpload, InstanceStatementUpload,
-    CreateUploadDep
+    create_upload_dep
 )
 
+from app.api.dependencies.upload import StorageClientDep, upload_create_form
 from app.api.models import Upload, UploadCreate, UploadOut, UploadUpdate, Message
 # from app.services.vector_store import get_embedding, search_similar_vectors
 
@@ -47,12 +51,38 @@ async def read_upload(upload: CurrentInstanceUpload) -> Any:
 @router.post("/")
 async def create_upload(
     *,
-    upload_stream: CreateUploadDep,
+    session: SessionDep,
+    current_team_and_user: CurrentTeamAndUser,
+    storage_client: StorageClientDep,
+    upload_in: UploadCreate = Depends(upload_create_form), 
+    file: UploadFile = File(...)
 ) -> Any:
     """
     Create new upload.
     """
-    return StreamingResponse(upload_stream, media_type="text/event-stream")
+    queue = asyncio.Queue()  # 创建队列
+
+    background_task = await create_upload_dep(
+        session=session, 
+        current_team_and_user=current_team_and_user, 
+        storage_client=storage_client, 
+        upload_in=upload_in, 
+        file=file,
+        queue=queue
+    )
+
+    async def stream_progress():
+        while 1:
+            progress = await queue.get()
+            yield dumps(progress, ensure_ascii=False, indent=4)
+
+            if progress["status"] == "completed":
+                break
+
+    return StreamingResponse(
+        content=stream_progress(), media_type="text/event-stream",
+        background=background_task
+    )
 
 
 
