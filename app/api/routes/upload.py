@@ -86,7 +86,6 @@ async def create_upload(
     )
 
 
-
 @router.put("/{id}", response_model=UploadOut)
 async def update_upload(
     *,
