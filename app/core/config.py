@@ -101,7 +101,7 @@ class Settings(BaseSettings):
     AWS_S3_ENDPOINT_URL: str
     AWS_S3_BUCKET_NAME: str
     AWS_S3_UPLOAD_BUFFER: int = 5 * 1024 * 1024  # 5MB 分块大小
-    AWS_S3_DOWNLOAD_BUFFER: int = 128 * 1024
+    AWS_S3_DOWNLOAD_BUFFER: int = 1024 * 1024
     AWS_S3_UPLOAD_PREFIX: str
 
     @model_validator(mode="after")
