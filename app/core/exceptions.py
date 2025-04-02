@@ -118,3 +118,4 @@ def register_exception_handlers(app: FastAPI):
     app.exception_handler(ArgumentError)(argument_exception_handler)
     app.exception_handler(DBAPIError)(sqlalchemy_exception_handler)
     app.exception_handler(Exception)(global_exception_handler)
+    ...

@@ -4,15 +4,15 @@ from json import dumps
 from typing import Any
 
 from fastapi import APIRouter, Depends, UploadFile, File
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import StreamingResponse
 
 from app.api.dependencies import (
     SessionDep, CurrentTeamAndUser, CurrentInstanceUpload, InstanceStatementUpload,
-    create_upload_dep, create_download_dep
+    StorageClientDep,
+    create_upload, upload_create_form, aws_to_embeddings
 )
-
-from app.api.dependencies.upload import StorageClientDep, upload_create_form
-from app.api.models import Upload, UploadCreate, UploadOut, UploadUpdate, Message
+from app.api.models import UploadCreate, UploadOut, UploadUpdate, Message
 # from app.services.vector_store import get_embedding, search_similar_vectors
 
 from fastapi_pagination.ext.sqlmodel import paginate
@@ -62,7 +62,7 @@ async def create_upload(
     """
     queue = asyncio.Queue()  # 创建队列
 
-    background_task = await create_upload_dep(
+    background_task = await create_upload(
         session=session, 
         current_team_and_user=current_team_and_user, 
         storage_client=storage_client, 
@@ -70,7 +70,6 @@ async def create_upload(
         file=file,
         queue=queue
     )
-
     async def stream_progress():
         while 1:
             progress = await queue.get()
@@ -120,32 +119,15 @@ async def delete_upload(
 @router.get("/{id}/vector")
 async def build_file_to_vector(
     session: SessionDep,
-    storage_client: StorageClientDep,
-    upload: CurrentInstanceUpload
-) -> Any:
+    upload: CurrentInstanceUpload,
+) -> Message:
+
+    # if upload.status: raise RequestValidationError(f"The {upload.id} has been vectoried")
     
-    queue = asyncio.Queue()  # 创建队列
-        
-    background_task = await create_download_dep(
-        session=session, 
-        storage_client=storage_client, 
-        upload=upload,
-        queue=queue
+    return await aws_to_embeddings(
+        session=session,
+        upload=upload
     )
-
-    async def stream_progress():
-        while 1:
-            progress = await queue.get()
-            yield dumps(progress, ensure_ascii=False, indent=4)
-
-            if progress["status"] == "COMPLETED":
-                break
-
-    return StreamingResponse(
-        content=stream_progress(), media_type="text/event-stream",
-        background=background_task
-    )
-
 
 
 @router.post("/{id}/search")

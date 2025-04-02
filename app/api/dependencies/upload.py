@@ -1,6 +1,6 @@
 import asyncio
 from json import loads
-from typing import Annotated, AsyncGenerator, Literal
+from typing import Annotated, AsyncGenerator
 import uuid
 import os
 
@@ -8,11 +8,11 @@ from fastapi import Depends, File, Form, HTTPException, UploadFile, status
 from sqlmodel import or_, select
 from sqlmodel.sql._expression_select_cls import SelectOfScalar
 
-from app.api.models import Upload, Team, UploadCreate
+from app.api.models import Message, Upload, Team, UploadCreate, Embedding
 from app.core.storage.s3 import StorageClient
 from app.core.config import settings
 from app.core.string import uuid_8
-from app.core.rag.vectorization import chunk_to_vector
+from app.core.rag import file_to_embeddings
 
 from .session import SessionDep
 from .team import CurrentTeamAndUser
@@ -147,59 +147,14 @@ async def create_upload(
         "total_size": file.size
     })
 
-async def create_download(
+    
+async def aws_to_embeddings(
     session: SessionDep,
-    storage_client: StorageClientDep,
-    queue: asyncio.Queue,
-    upload: Upload
-) -> AsyncGenerator:
-
-    bucket_name: str = settings.AWS_S3_BUCKET_NAME
-    remote_path: str = upload.file_path
-    file_name: str = upload.name
-
-    obj = await storage_client.stat_object(bucket_name=bucket_name, remote_path=remote_path)
-    total_bytes = obj.get("ContentLength", 0)
-
-    transferred_bytes = 0
-
-    file_obj = await storage_client.get_object(
-        bucket_name=bucket_name,
-        remote_path=remote_path,
-        transferred_bytes=transferred_bytes
-    )
-    if not (body := file_obj.get("Body", None)):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"S3 client has no data body on {upload.id}"
-        )
+    upload: Upload,
+) -> Message:
     
-    file_type = upload.file_type
-    
-    buffer: bytearray = bytearray()
-    overlap: bytes = b""
-    chunk_index: int = 0
-
-    while chunk := await body.read(settings.AWS_S3_DOWNLOAD_BUFFER):
-
-        buffer.extend(overlap + chunk)
-        transferred_bytes += len(chunk)
-
-        chunk_index = await chunk_to_vector(
-            session=session,
-            buffer=buffer,
-            file=upload,
-            chunk_index=chunk_index
-        )
-
-        overlap = buffer[-upload.chunk_overlap:] if overlap > 0 else b""
-        buffer.clear()
-
-        await queue.put({
-            "status": "IN_PROGRESS", 
-            "transferred_bytes": transferred_bytes,
-            "total_size": total_bytes
-        })
+    async for embedding in file_to_embeddings(file=upload):
+        session.add(embedding)
 
     upload.sqlmodel_update({
         "status": True
@@ -207,11 +162,7 @@ async def create_download(
     session.add(upload)
     await session.commit()
     await session.refresh(upload)
-    await queue.put({
-        "status": "COMPLETED",
-        "transferred_bytes": transferred_bytes,
-        "total_size": total_bytes
-    })
+    return Message(message=f"Upload {upload.id} has been vectorized successfully")
 
 
 InstanceStatement = Annotated[Upload, Depends(instance_statement)]

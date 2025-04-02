@@ -1,15 +1,16 @@
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Tuple
 from enum import Enum
 import uuid
 
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.dialects.postgresql import JSONB
 
 from pydantic import model_validator, EmailStr
 
 from sqlmodel import (
     ARRAY, JSON, Column, DateTime, Field, PrimaryKeyConstraint, Relationship, 
-    SQLModel, String, UniqueConstraint, func, Enum as SQLEnum
+    SQLModel, String, UniqueConstraint, func, Index, select
 )
 from pgvector.sqlalchemy import Vector
 
@@ -561,22 +562,37 @@ class Upload(UploadBase, table=True):
     file_path: str = Field(nullable=False)
     file_size: float = Field(nullable=False)
 
+    embeddings: list["Embedding"] = Relationship(back_populates="upload")
 
-class Document(SQLModel, table=True):
+
+# ============== Embedding =====================
+
+
+class Embedding(SQLModel, table=True):
+    """Embedding store."""
+
     id: uuid.UUID | None = Field(
         default_factory=uuid.uuid4,
         primary_key=True,
         index=True,
         nullable=False,
     )
-    upload_id: uuid.UUID = Field(default=None, foreign_key="upload.id", nullable=False)
-    chunk_index: int = Field(nullable=False)
-    text_content: str = Field(nullable=False)
-    embedding: List[float] = Field(
-        sa_column=Column(Vector(768), nullable=True),
-        default=None
-    )
 
+    upload_id: uuid.UUID | None = Field(default=None, foreign_key="upload.id", nullable=False, ondelete="CASCADE")
+    upload: Upload | None = Relationship(back_populates="embeddings")
+
+    embedding: List[float] = Field(sa_column=Column(Vector(None)))
+    document: str = Field(nullable=True)
+    cmetadata: dict[Any, Any] = Field(default_factory=dict, sa_column=Column(JSONB))
+
+    __table_args__ = (
+        Index(
+            "ix_metadata_gin",
+            "cmetadata",
+            postgresql_using="gin",
+            postgresql_ops={"cmetadata": "jsonb_path_ops"},
+        ),
+    )
 
 class UploadOut(UploadBase):
     id: uuid.UUID
