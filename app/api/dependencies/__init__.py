@@ -43,7 +43,7 @@ from .upload import (
     CurrentInstance as CurrentInstanceUpload,
     InstanceStatement as InstanceStatementUpload,
     StorageClientDep,
-    upload_create_form, create_upload, aws_to_embeddings
+    upload_create_form, create_upload as create_upload_dep
 )
 from .thread import (
     CurrentInstance as CurrentInstanceThread,

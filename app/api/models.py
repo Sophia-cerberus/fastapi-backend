@@ -106,6 +106,8 @@ class User(UserBase, table=True):
     models: list["Model"] = Relationship(back_populates="owner")
     providers: list["ModelProvider"] = Relationship(back_populates="owner")
     threads: list["Thread"] = Relationship(back_populates="owner")
+    embeddings: list["Embedding"] = Relationship(back_populates="owner")
+
     language: str = Field(default="en-US")
 
 
@@ -219,6 +221,10 @@ class Team(TeamBase, table=True):
     uploads: list["Upload"] = Relationship(
         back_populates="team", sa_relationship_kwargs={"cascade": "delete"}
     )
+    embeddings: list["Embedding"] = Relationship(
+        back_populates="team", sa_relationship_kwargs={"cascade": "delete"}    
+    )
+
 
 
 # Properties to return via API, id is always required
@@ -581,9 +587,16 @@ class Embedding(SQLModel, table=True):
     upload_id: uuid.UUID | None = Field(default=None, foreign_key="upload.id", nullable=False, ondelete="CASCADE")
     upload: Upload | None = Relationship(back_populates="embeddings")
 
-    embedding: List[float] = Field(sa_column=Column(Vector(None)))
+    embedding: List[float] = Field(sa_column=Column(Vector()))
     document: str = Field(nullable=True)
     cmetadata: dict[Any, Any] = Field(default_factory=dict, sa_column=Column(JSONB))
+
+    owner_id: uuid.UUID | None = Field(foreign_key="user.id", nullable=False)
+    owner: User | None = Relationship(back_populates="uploads")
+
+    team_id: uuid.UUID = Field(foreign_key="team.id", nullable=False)
+    team: Team = Relationship(back_populates="uploads")
+
 
     __table_args__ = (
         Index(
@@ -593,6 +606,7 @@ class Embedding(SQLModel, table=True):
             postgresql_ops={"cmetadata": "jsonb_path_ops"},
         ),
     )
+
 
 class UploadOut(UploadBase):
     id: uuid.UUID
@@ -712,9 +726,9 @@ class Model(ModelsBase, table=True):
     capabilities: list[ModelCapability] = Field(
         sa_column=Column(ARRAY(String)), default=[]
     )
-    meta_: dict[str, Any] = Field(
+    cmetadata: dict[str, Any] = Field(
         default_factory=dict,
-        sa_column=Column("metadata", JSONB, nullable=False, server_default="{}"),
+        sa_column=Column("cmetadata", JSONB, nullable=False, server_default="{}"),
     )
     # Relationship with ModelProvider
     provider: ModelProvider = Relationship(back_populates="models")
@@ -741,14 +755,14 @@ class ModelOut(SQLModel):
 
 # 新增一个用于创建模型的请求模型
 class ModelCreate(ModelsBase):
-    meta_: dict[str, Any] | None = None
+    cmetadata: dict[str, Any] | None = None
 
 
 # 新增一个用于更新模型的请求模型
 class ModelUpdate(ModelsBase):
     ai_model_name: str | None = None
     provider_id: int | None = None
-    meta_: dict[str, Any] | None = None
+    cmetadata: dict[str, Any] | None = None
 
 
 # ==============Graph=====================

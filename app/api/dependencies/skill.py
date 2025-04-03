@@ -64,6 +64,6 @@ async def validate_update_in(
     return await current_instance(session=session, id=id, current_team_and_user=current_team_and_user)
 
 
-InstanceStatement = Annotated[Skill, Depends(instance_statement)]
+InstanceStatement = Annotated[SelectOfScalar[Skill], Depends(instance_statement)]
 CurrentInstance = Annotated[Skill, Depends(current_instance)]
 ValidateUpdateIn = Annotated[Skill, Depends(validate_update_in)]

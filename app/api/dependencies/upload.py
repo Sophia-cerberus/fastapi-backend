@@ -147,23 +147,6 @@ async def create_upload(
         "total_size": file.size
     })
 
-    
-async def aws_to_embeddings(
-    session: SessionDep,
-    upload: Upload,
-) -> Message:
-    
-    async for embedding in file_to_embeddings(file=upload):
-        session.add(embedding)
 
-    upload.sqlmodel_update({
-        "status": True
-    })
-    session.add(upload)
-    await session.commit()
-    await session.refresh(upload)
-    return Message(message=f"Upload {upload.id} has been vectorized successfully")
-
-
-InstanceStatement = Annotated[Upload, Depends(instance_statement)]
+InstanceStatement = Annotated[SelectOfScalar[Upload], Depends(instance_statement)]
 CurrentInstance = Annotated[Upload, Depends(current_instance)]

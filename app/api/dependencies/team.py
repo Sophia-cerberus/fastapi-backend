@@ -84,33 +84,11 @@ async def validate_update_in(
     return await current_instance(session=session, id=id, current_user=current_user)
 
 
-# header_scheme = APIKeyHeader(name="x-api-key")
-
-# async def get_current_team_from_keys(
-#     session: SessionDep,
-#     team_id: uuid.UUID,
-#     key: str = Depends(header_scheme),
-# ) -> Team:
-#     """Return team if apikey belongs to it"""
-#     team = await session.get(Team, team_id)
-#     if not team:
-#         raise HTTPException(status_code=404, detail="Team not found")
-#     verified = False
-#     for apikey in team.apikeys:
-#         apikey.team_id
-#         if security_manager.verify_password(key, apikey.hashed_key):
-#             verified = True
-#             break
-#     if not verified:
-#         raise HTTPException(status_code=401, detail="Invalid API key")
-#     return team
-
-InstanceStatement = Annotated[Team, Depends(instance_statement)]
+InstanceStatement = Annotated[SelectOfScalar[Team], Depends(instance_statement)]
 CurrentInstance = Annotated[Team, Depends(current_instance)]
 ValidateCreateIn = Annotated[None, Depends(validate_create_in)]
 ValidateUpdateOn = Annotated[Team, Depends(validate_update_in)]
 CurrentTeamAndUser = Annotated[TeamAndUser, Depends(get_current_team_and_user)]
-# CurrentTeamFromKeys = Annotated[Team, Depends(get_current_team_from_keys)]
 
 
 def create_member_for_team(team: Team) -> Member:

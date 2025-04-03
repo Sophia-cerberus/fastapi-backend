@@ -15,7 +15,7 @@ class ModelProviderManager:
     def load_providers(self):
         providers_dir = os.path.dirname(os.path.abspath(__file__))
         for item in os.listdir(providers_dir):
-            if os.path.isdir(os.path.join(providers_dir, item)) and not item.startswith(
+            if os.path.isfile(os.path.join(providers_dir, item)) and not item.startswith(
                 "__"
             ):
                 try:

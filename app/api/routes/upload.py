@@ -10,7 +10,7 @@ from fastapi.responses import StreamingResponse
 from app.api.dependencies import (
     SessionDep, CurrentTeamAndUser, CurrentInstanceUpload, InstanceStatementUpload,
     StorageClientDep,
-    create_upload, upload_create_form, aws_to_embeddings
+    create_upload_dep, upload_create_form
 )
 from app.api.models import UploadCreate, UploadOut, UploadUpdate, Message
 # from app.services.vector_store import get_embedding, search_similar_vectors
@@ -19,6 +19,8 @@ from fastapi_pagination.ext.sqlmodel import paginate
 from fastapi_pagination.links import Page
 
 from fastapi_filter import FilterDepends
+
+from app.core.rag.embedding import file_to_embeddings
 
 from ..filters import UploadFilter
 
@@ -62,7 +64,7 @@ async def create_upload(
     """
     queue = asyncio.Queue()  # 创建队列
 
-    background_task = await create_upload(
+    background_task = await create_upload_dep(
         session=session, 
         current_team_and_user=current_team_and_user, 
         storage_client=storage_client, 
@@ -122,16 +124,16 @@ async def build_file_to_vector(
     upload: CurrentInstanceUpload,
 ) -> Message:
 
-    # if upload.status: raise RequestValidationError(f"The {upload.id} has been vectoried")
+    if upload.status: 
+        raise RequestValidationError(f"The {upload.id} has been vectoried")
     
-    return await aws_to_embeddings(
-        session=session,
-        upload=upload
-    )
+    async for embedding in file_to_embeddings(file=upload):
+        session.add(embedding)
 
-
-@router.post("/{id}/search")
-async def search_file_in_vector(
-    upload: CurrentInstanceUpload
-):
-    return
+    upload.sqlmodel_update({
+        "status": True
+    })
+    session.add(upload)
+    await session.commit()
+    await session.refresh(upload)
+    return Message(message=f"Upload {upload.id} has been vectorized successfully")

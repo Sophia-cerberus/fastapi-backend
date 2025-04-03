@@ -86,5 +86,7 @@ async def file_to_embeddings(
                 "document": chunk,
                 "cmetadata": metadata,
                 "upload_id": file.id,
+                "owner_id": file.owner_id,
+                "team_id": file.team_id
             })
             yield embedding

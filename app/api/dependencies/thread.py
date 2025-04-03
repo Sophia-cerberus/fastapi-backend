@@ -38,5 +38,5 @@ async def current_instance(
     return thread
 
 
-InstanceStatement = Annotated[Thread, Depends(instance_statement)]
+InstanceStatement = Annotated[SelectOfScalar[Thread], Depends(instance_statement)]
 CurrentInstance = Annotated[Thread, Depends(current_instance)]

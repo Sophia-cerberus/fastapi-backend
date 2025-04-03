@@ -37,5 +37,5 @@ async def current_instance(
     return provider
 
 
-InstanceStatement = Annotated[ModelProvider, Depends(instance_statement)]
+InstanceStatement = Annotated[SelectOfScalar[ModelProvider], Depends(instance_statement)]
 CurrentInstance = Annotated[ModelProvider, Depends(current_instance)]

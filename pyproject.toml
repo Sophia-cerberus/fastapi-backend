@@ -49,8 +49,7 @@ dependencies = [
     "unstructured>=0.17.2",
     "pi-heif>=0.22.0",
     "unstructured-inference>=0.8.10",
-    "pdf2image>=1.17.0",
-    "poppler",
+    "qdrant-client",
 ]
 
 [tool.uv]

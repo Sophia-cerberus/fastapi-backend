@@ -39,9 +39,9 @@ async def create_models(
     """
     Create Models
     """
-    meta_ = ai_model_in.meta_.copy()
+    cmetadata = ai_model_in.cmetadata.copy()
     model = Model.model_validate(ai_model_in, update={
-        "meta_": meta_ or {},
+        "cmetadata": cmetadata or {},
         "owner_id": current_team_and_user.user.id,
         "team_id": current_team_and_user.team.id
     })
@@ -81,7 +81,7 @@ async def update_model_metadata(
     """
     Patch Meta Of Models.
     """
-    model.meta_.update(metadata_in)
+    model.cmetadata.update(metadata_in)
     session.add(model)
     await session.commit()
     await session.refresh(model)

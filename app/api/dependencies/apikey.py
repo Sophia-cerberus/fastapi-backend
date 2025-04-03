@@ -35,7 +35,7 @@ async def current_instance(
     return apikey
 
 
-InstanceStatement = Annotated[ApiKey, Depends(instance_statement)]
+InstanceStatement = Annotated[SelectOfScalar[ApiKey], Depends(instance_statement)]
 CurrentInstance = Annotated[ApiKey, Depends(current_instance)]
 
 
