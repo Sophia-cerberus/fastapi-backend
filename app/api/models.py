@@ -592,10 +592,10 @@ class Embedding(SQLModel, table=True):
     cmetadata: dict[Any, Any] = Field(default_factory=dict, sa_column=Column(JSONB))
 
     owner_id: uuid.UUID | None = Field(foreign_key="user.id", nullable=False)
-    owner: User | None = Relationship(back_populates="uploads")
+    owner: User | None = Relationship(back_populates="embeddings")
 
     team_id: uuid.UUID = Field(foreign_key="team.id", nullable=False)
-    team: Team = Relationship(back_populates="uploads")
+    team: Team = Relationship(back_populates="embeddings")
 
 
     __table_args__ = (
