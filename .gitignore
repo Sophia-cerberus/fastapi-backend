@@ -10,3 +10,4 @@ htmlcov
 .venv
 .DS_Store
 .data
+logs
