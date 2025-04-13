@@ -1,7 +1,6 @@
-import secrets
+import os
 import warnings
 from typing import Annotated, Any, Literal
-
 from pydantic import (
     AnyUrl,
     BeforeValidator,
@@ -14,6 +13,7 @@ from pydantic import (
 from pydantic_core import MultiHostUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing_extensions import Self
+
 
 
 def parse_cors(v: Any) -> list[str] | str:
@@ -144,5 +144,59 @@ class Settings(BaseSettings):
     
     MODEL_PROVIDER_ENCRYPTION_KEY: str = ""
 
+    LOGGING_DIR: str = 'logs'
+
+    if not os.path.exists(LOGGING_DIR): 
+        os.makedirs(LOGGING_DIR)
+
+    SERVER_LOGS_FILE: str = os.path.join(LOGGING_DIR, 'server.log')
+    ERROR_LOGS_FILE: str = os.path.join(LOGGING_DIR, 'error.log')
+
+    LOGGING: dict[str, Any] = {
+        'version': 1,
+        'disable_existing_loggers': False,
+        'formatters': {
+            'simple': {
+                'format': '%(asctime)s [%(trace_id)s] [%(name)s] [%(filename)s:%(lineno)d] [%(levelname)s] - %(message)s',
+                "datefmt": "%Y-%m-%d %H:%M:%S"
+            },
+            'standard': {
+                'format': '{"time": "%(asctime)s", "level": "%(levelname)s", "func": "%(name)s.%(module)s.%(funcName)s:%(lineno)d", "trace_id": "%(trace_id)s",  "message": "%(message)s"}',
+                'datefmt': '%Y-%m-%d %H:%M:%S'
+            }
+        },
+        'filters': {
+            'info_filter': "app.utils.logger.filters.InfoFilter",
+            'trace_id_filter': "app.utils.logger.filters.TraceIdFilter"
+        },
+        'handlers': {
+            # 'console': {
+            #     'level': 'INFO',
+            #     'class': 'aiologger.handlers.streams.AsyncStreamHandler',
+            #     'formatter': 'simple',
+            #     'filters': ['trace_id_filter'],
+            # },
+            'error_file': {
+                'level': 'ERROR',
+                'class': 'aiologger.handlers.files.AsyncTimedRotatingFileHandler',
+                'filename': ERROR_LOGS_FILE,
+                'when': "midnight",
+                'backup_count': 7,  # 保留最近7天的日志文件
+                'formatter': 'standard',
+                'filters': ['trace_id_filter'],
+                'encoding': 'utf-8'  # 设置文件编码为UTF-8
+            },
+            'info_file': {
+                'level': 'INFO',
+                'class': 'aiologger.handlers.files.AsyncTimedRotatingFileHandler',
+                'filename': SERVER_LOGS_FILE,
+                'when': "midnight",
+                'backup_count': 7,  # 保留最近7天的日志文件
+                'formatter': 'standard',
+                'filters': ['trace_id_filter', 'info_filter'],
+                'encoding': 'utf-8'  # 设置文件编码为UTF-8
+            }
+        }
+    }
 
 settings = Settings()  # type: ignore

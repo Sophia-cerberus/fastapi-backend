@@ -1,16 +1,15 @@
 from datetime import datetime
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Optional
 from enum import Enum
 import uuid
 
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.dialects.postgresql import JSONB
 
 from pydantic import model_validator, EmailStr
 
 from sqlmodel import (
     ARRAY, JSON, Column, DateTime, Field, PrimaryKeyConstraint, Relationship, 
-    SQLModel, String, UniqueConstraint, func, Index, select
+    SQLModel, String, UniqueConstraint, func, Index
 )
 from pgvector.sqlalchemy import Vector
 

@@ -6,11 +6,18 @@ from fastapi.exceptions import (
     RequestValidationError, ResponseValidationError
 )
 from pydantic_core._pydantic_core import ValidationError
-import sqlalchemy
 from sqlalchemy.exc import ArgumentError, DBAPIError
+
+from app.utils.logger import get_logger
+
+
+logger = get_logger(__name__)
 
 
 async def request_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+     
+     await logger.error(f"Request Validation Error: {(errors := exc.errors())}")
+
      return JSONResponse(
          status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
          content={
@@ -18,13 +25,16 @@ async def request_exception_handler(request: Request, exc: RequestValidationErro
             "message": f"Request Validation Error",
             "errors": [
                 {'.'.join(map(str, e['loc'])): e['msg']}
-                for e in exc.errors()
+                for e in errors
             ]
         },   
     )
 
 
 async def response_exception_handler(request: Request, exc: ResponseValidationError) -> JSONResponse:
+     
+     await logger.error(f"Respone Validation Error: {(errors := exc.errors())}")
+
      return JSONResponse(
          status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
          content={
@@ -39,6 +49,9 @@ async def response_exception_handler(request: Request, exc: ResponseValidationEr
 
 
 async def validate_exception_handler(request: Request, exc: ValidationError) -> JSONResponse:
+     
+     await logger.error(f"Validation Error: {(errors := exc.errors())}")
+
      return JSONResponse(
          status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
          content={
@@ -53,39 +66,51 @@ async def validate_exception_handler(request: Request, exc: ValidationError) -> 
 
 
 async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
+     
+     await logger.error(f"HTTP Error: {(errors := exc.detail)}")
+
      return JSONResponse(
          status_code=exc.status_code,
          content={
             "status_code": exc.status_code,
             "message": "HTTP Error", 
-            "errors": exc.detail
+            "errors": errors
         },   
     )
 
 
 async def websocket_exception_handler(request: Request, exc: WebSocketException) -> JSONResponse:
+     
+     await logger.error(f"HTTP Error: {(errors := exc.reason)}")
+
      return JSONResponse(
          status_code=exc.code,
          content={
             "status_code": exc.code,
             "message": "WebScoket Error", 
-            "errors": exc.reason
+            "errors": errors
         },   
     )
 
 
 async def argument_exception_handler(request: Request, exc: ArgumentError) -> JSONResponse:
+     
+     await logger.error(f"HTTP Error: {(errors := str(exc))}")
+
      return JSONResponse(
          status_code=400,
          content={
             "status_code": 400,
             "message": "Argument Error", 
-            "errors": str(exc)
+            "errors": errors
         },   
     )
 
 
 async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+     
+     await logger.error(f"API Error: {(errors := str(exc))}")
+
      return JSONResponse(
          status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
          content={
@@ -97,13 +122,15 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
     )
 
 async def sqlalchemy_exception_handler(request: Request, exc: DBAPIError) -> JSONResponse:
+     
+     await logger.error(f"API Error: {(errors := exc._message())}")
+
      return JSONResponse(
-          
          status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
          content={
             "status_code": 500,
             "message": f"sqlalchemy DBAPIError Error",
-            "errors": exc._message()
+            "errors": errors
         },   
     )
 

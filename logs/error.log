@@ -1,0 +1,2 @@
+{"time": "2025-04-13 17:57:58", "level": "ERROR", "func": "app.core.exceptions.exceptions.http_exception_handler:70", "trace_id": "734c371d-62af-4331-8da3-3ac83999eecf",  "message": "HTTP Error: Incorrect email or password"}
+{"time": "2025-04-13 17:59:03", "level": "ERROR", "func": "app.core.exceptions.exceptions.http_exception_handler:70", "trace_id": "03f20496-2454-4cdd-9c67-8d735808ea4d",  "message": "HTTP Error: Incorrect email or password"}

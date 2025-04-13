@@ -12,6 +12,7 @@ from app.api.dependencies import CurrentUser, SessionDep, get_current_active_sup
 from app.core import security
 from app.core.config import settings
 from app.core.security import get_password_hash
+from app.utils.logger import get_logger
 from app.api.models import (
     AccessToken,
     NewPassword,
@@ -31,6 +32,8 @@ from app.core.security import get_password_hash, verify_password, generate_token
 
 
 router = APIRouter(tags=["login"])
+
+logger = get_logger(__name__)
 
 
 @router.post("/login/token")
