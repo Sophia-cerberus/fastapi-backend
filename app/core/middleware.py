@@ -1,7 +1,6 @@
 
 
 from time import time
-from json import dumps
 
 from fastapi import FastAPI, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
@@ -13,7 +12,6 @@ from app.utils.context import trace_id_ctx
 logger = get_logger(__name__)
 
 # 自定义 Trace ID 管理器，保证在一个请求上下文中 trace_id 一样且唯一
-
 
 class CoreMiddleware(BaseHTTPMiddleware):
 
@@ -32,8 +30,10 @@ class CoreMiddleware(BaseHTTPMiddleware):
         response.headers["X-Request-IP-Host"] = client_ip
 
         message = {
+            "path_params": request.path_params,
+            "query_params": request.query_params,
             "method": request.method,
-            "url": str(request.url),
+            "url": request.url,
             "status_code": response.status_code,
             "process_time": f"{process_time:.4f}s",
             "client_ip": client_ip,
