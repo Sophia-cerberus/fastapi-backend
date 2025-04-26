@@ -9,9 +9,7 @@ from pydantic_core import ValidationError
 from sqlmodel import select
 
 from app.api.dependencies import CurrentUser, SessionDep, get_current_active_superuser
-from app.core import security
 from app.core.config import settings
-from app.core.security import get_password_hash
 from app.utils.logger import get_logger
 from app.api.models import (
     AccessToken,
@@ -28,7 +26,7 @@ from app.utils import (
     send_email,
     verify_password_reset_token,
 )
-from app.core.security import get_password_hash, verify_password, generate_token
+from app.core.security import get_password_hash, verify_password, generate_token, ALGORITHM
 
 
 router = APIRouter(tags=["login"])
@@ -51,12 +49,9 @@ async def login_token(
     elif not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Inactive user")
 
-    token = security.generate_token(user.id)
+    token = generate_token(user.id)
 
-    return Token(
-        access_token=token.access_token(), 
-        refresh_token=token.refresh_token()
-    )
+    return Token(access_token=token.access_token, refresh_token=token.refresh_token)
 
 
 @router.post("/login/refresh-token")
@@ -66,7 +61,7 @@ async def login_refresh(refresh_token: str, session: SessionDep) -> AccessToken:
     """
     try:
         payload = jwt.decode(
-            refresh_token, settings.SECRET_KEY, algorithms=[security.ALGORITHM]
+            refresh_token, settings.SECRET_KEY, algorithms=[ALGORITHM]
         )
 
         token_data = TokenPayload(**payload)
@@ -97,10 +92,8 @@ async def login_refresh(refresh_token: str, session: SessionDep) -> AccessToken:
         )
 
     # 使用已验证的用户信息生成新的访问令牌
-    token = security.generate_token(user.id)
-    return AccessToken(
-        access_token=token.access_token()
-    )
+    token = generate_token(user.id)
+    return AccessToken(access_token=token.access_token)
 
 
 @router.post("/login/test-token", response_model=UserOut)

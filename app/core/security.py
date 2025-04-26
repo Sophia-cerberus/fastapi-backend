@@ -13,10 +13,12 @@ from app.core.config import settings
 
 class TokenGenerator(ABC):
     
+    @property
     @abstractmethod
     def access_token(self) -> str:
         pass
 
+    @property
     @abstractmethod
     def refresh_token(self) -> str:
         pass
@@ -35,6 +37,7 @@ class JWTTokenGenerator(TokenGenerator):
         self.payload: dict[str, Any] = payload
         self.algorithm = algorithm
 
+    @property
     def refresh_token(self):
         payload = self.payload.copy()
         payload.update({
@@ -48,6 +51,7 @@ class JWTTokenGenerator(TokenGenerator):
 
         return jwt.encode(payload, settings.SECRET_KEY, algorithm=self.algorithm)
 
+    @property
     def access_token(self) -> str:
         payload = self.payload.copy()
         payload.update({

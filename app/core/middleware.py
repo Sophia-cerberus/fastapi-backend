@@ -1,6 +1,7 @@
 
 
 from time import time
+from json import dumps
 
 from fastapi import FastAPI, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
@@ -29,17 +30,17 @@ class CoreMiddleware(BaseHTTPMiddleware):
 
         response.headers["X-Request-IP-Host"] = client_ip
 
-        message = {
-            "path_params": request.path_params,
-            "query_params": request.query_params,
+        message = dumps({
+            "path_params": dumps(request.path_params, ensure_ascii=False),
+            "query_params": str(request.query_params),
             "method": request.method,
-            "url": request.url,
+            "url": request.url.hostname,
             "status_code": response.status_code,
             "process_time": f"{process_time:.4f}s",
             "client_ip": client_ip,
             "trace_id": trace_id_ctx.trace_id,
             "user_agent": request.headers.get("User-Agent"),
-        }
+        }, ensure_ascii=False)
 
         await logger.info(message)
 

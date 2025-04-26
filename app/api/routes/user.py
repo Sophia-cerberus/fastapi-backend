@@ -13,6 +13,7 @@ from app.api.dependencies import (
 from app.core.config import settings
 from app.core.security import get_password_hash, verify_password
 from app.api.models import (
+    Team,
     UpdatePassword,
     User,
     UserCreate,
@@ -124,7 +125,7 @@ async def update_user_me(
     session.add(current_user)
     await session.commit()
     await session.refresh(current_user)
-    return user_in
+    return current_user
 
 
 @router.patch("/me/password", response_model=Message)

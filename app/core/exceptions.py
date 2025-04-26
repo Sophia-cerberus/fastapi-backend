@@ -123,7 +123,7 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
 
 async def sqlalchemy_exception_handler(request: Request, exc: DBAPIError) -> JSONResponse:
      
-     await logger.error(f"API Error: {(errors := exc._message())}")
+     await logger.error(f"DBAPI Error: {(errors := exc._message())}")
 
      return JSONResponse(
          status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

@@ -65,6 +65,7 @@ async def file_to_embeddings(
     )
 
     async for doc in documents:
+
         text = doc.page_content
         metadata = doc.metadata or {}
 
