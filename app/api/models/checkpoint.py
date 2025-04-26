@@ -4,12 +4,12 @@ import uuid
 
 from sqlalchemy.dialects.postgresql import JSONB
 
-
 from sqlmodel import Column, DateTime, Field, PrimaryKeyConstraint, SQLModel, String, func
+from app.api.utils.models import BaseModel
 
 
 
-class Checkpoint(SQLModel, table=True):
+class Checkpoint(BaseModel, table=True):
     __tablename__ = "checkpoints"
     __table_args__ = (
         PrimaryKeyConstraint("thread_id", "checkpoint_id", "checkpoint_ns"),
@@ -38,7 +38,7 @@ class Checkpoint(SQLModel, table=True):
     )
 
 
-class CheckpointBlobs(SQLModel, table=True):
+class CheckpointBlobs(BaseModel, table=True):
     __tablename__ = "checkpoint_blobs"
     __table_args__ = (
         PrimaryKeyConstraint("thread_id", "checkpoint_ns", "channel", "version"),
@@ -62,7 +62,7 @@ class CheckpointOut(SQLModel):
     created_at: datetime
 
 
-class Write(SQLModel, table=True):
+class Write(BaseModel, table=True):
     __tablename__ = "checkpoint_writes"
     __table_args__ = (
         PrimaryKeyConstraint(

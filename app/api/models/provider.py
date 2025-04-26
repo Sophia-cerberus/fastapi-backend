@@ -7,9 +7,10 @@ from sqlalchemy.dialects.postgresql import JSONB
 
 from sqlmodel import ARRAY, Column, Field, Relationship, SQLModel, String
 from app.core.security import security_manager
+from app.api.utils.models import BaseModel
 
 
-class ModelProviderBase(SQLModel):
+class ModelProviderBase(BaseModel):
     provider_name: str = Field(regex=r"^[a-zA-Z0-9_-]{1,64}$", unique=True)
     base_url: str | None = None
     api_key: str | None = None
@@ -82,7 +83,7 @@ class ModelCapability(str, Enum):
     VISION = "vision"
 
 
-class ModelsBase(SQLModel):
+class ModelsBase(BaseModel):
     ai_model_name: str = Field(regex=r"^[a-zA-Z0-9/_:.-]{1,64}$", unique=True)
     provider_id: uuid.UUID
     categories: list[ModelCategory] = Field(sa_column=Column(ARRAY(String)))

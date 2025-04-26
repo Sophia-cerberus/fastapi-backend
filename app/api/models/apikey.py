@@ -1,11 +1,12 @@
 from datetime import datetime
 import uuid
 
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field
+from app.api.utils.models import BaseModel
 
 
 
-class ApiKeyBase(SQLModel):
+class ApiKeyBase(BaseModel):
     description: str | None = "Default API Key Description"
 
 

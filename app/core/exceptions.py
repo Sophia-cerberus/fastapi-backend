@@ -16,13 +16,14 @@ logger = get_logger(__name__)
 
 async def request_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
      
-     await logger.error(f"Request Validation Error: {(errors := exc.errors())}")
+     errors = exc.errors()
+     await logger.error(f"Request Validation Error: {errors}")
 
      return JSONResponse(
          status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
          content={
             "status_code": 422,
-            "message": f"Request Validation Error",
+            "message": "Request Validation Error",
             "errors": [
                 {'.'.join(map(str, e['loc'])): e['msg']}
                 for e in errors
@@ -33,13 +34,14 @@ async def request_exception_handler(request: Request, exc: RequestValidationErro
 
 async def response_exception_handler(request: Request, exc: ResponseValidationError) -> JSONResponse:
      
-     await logger.error(f"Respone Validation Error: {(errors := exc.errors())}")
+     errors = exc.errors()
+     await logger.error(f"Response Validation Error: {errors}")
 
      return JSONResponse(
          status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
          content={
             "status_code": 422,
-            "message": f"Respone Validation Error",
+            "message": "Response Validation Error",
             "errors": [
                 {'.'.join(map(str, e['loc'])): e['msg']}
                 for e in exc.errors()
@@ -50,13 +52,14 @@ async def response_exception_handler(request: Request, exc: ResponseValidationEr
 
 async def validate_exception_handler(request: Request, exc: ValidationError) -> JSONResponse:
      
-     await logger.error(f"Validation Error: {(errors := exc.errors())}")
+     errors = exc.errors()
+     await logger.error(f"Validation Error: {errors}")
 
      return JSONResponse(
          status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
          content={
             "status_code": 422,
-            "message": f"Validation Error",
+            "message": "Validation Error",
             "errors": [
                 {'.'.join(map(str, e['loc'])): e['msg']}
                 for e in exc.errors()
@@ -67,13 +70,14 @@ async def validate_exception_handler(request: Request, exc: ValidationError) -> 
 
 async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
      
-     await logger.error(f"HTTP Error: {(errors := exc.detail)}")
+     errors = exc.detail
+     await logger.error(f"HTTP Error: {errors}")
 
      return JSONResponse(
          status_code=exc.status_code,
          content={
             "status_code": exc.status_code,
-            "message": "HTTP Error", 
+            "message": "HTTP Error",
             "errors": errors
         },   
     )
@@ -81,13 +85,14 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
 
 async def websocket_exception_handler(request: Request, exc: WebSocketException) -> JSONResponse:
      
-     await logger.error(f"HTTP Error: {(errors := exc.reason)}")
+     errors = exc.reason
+     await logger.error(f"HTTP Error: {errors}")
 
      return JSONResponse(
          status_code=exc.code,
          content={
             "status_code": exc.code,
-            "message": "WebScoket Error", 
+            "message": "WebSocket Error", 
             "errors": errors
         },   
     )
@@ -95,7 +100,8 @@ async def websocket_exception_handler(request: Request, exc: WebSocketException)
 
 async def argument_exception_handler(request: Request, exc: ArgumentError) -> JSONResponse:
      
-     await logger.error(f"HTTP Error: {(errors := str(exc))}")
+     errors = str(exc)
+     await logger.error(f"HTTP Error: {errors}")
 
      return JSONResponse(
          status_code=400,
@@ -109,13 +115,14 @@ async def argument_exception_handler(request: Request, exc: ArgumentError) -> JS
 
 async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
      
-     await logger.error(f"API Error: {(errors := str(exc))}")
+     errors = str(exc)
+     await logger.error(f"API Error: {errors}")
 
      return JSONResponse(
          status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
          content={
             "status_code": 500,
-            "message": f"API Error",
+            "message": "API Error",
             "errors": str(exc)
 
         },   
@@ -123,13 +130,14 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
 
 async def sqlalchemy_exception_handler(request: Request, exc: DBAPIError) -> JSONResponse:
      
-     await logger.error(f"DBAPI Error: {(errors := exc._message())}")
+     errors = exc._message()
+     await logger.error(f"DBAPI Error: {errors}")
 
      return JSONResponse(
          status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
          content={
             "status_code": 500,
-            "message": f"sqlalchemy DBAPIError Error",
+            "message": "sqlalchemy DBAPIError Error",
             "errors": errors
         },   
     )

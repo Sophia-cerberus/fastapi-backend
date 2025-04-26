@@ -1,12 +1,13 @@
 from datetime import datetime
 import uuid
 
-from sqlmodel import Column, DateTime, Field, Relationship, SQLModel, func
+from sqlmodel import Column, DateTime, Field, SQLModel, func
 
 from app.core.graph.messages import ChatResponse
+from app.api.utils.models import BaseModel
 
 
-class ThreadBase(SQLModel):
+class ThreadBase(BaseModel):
     query: str
 
 

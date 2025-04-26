@@ -4,10 +4,11 @@ import uuid
 
 from sqlalchemy.dialects.postgresql import JSONB
 
-from sqlmodel import Column, DateTime, Field, Relationship, SQLModel, func
+from sqlmodel import Column, DateTime, Field, func
+from app.api.utils.models import BaseModel
 
 
-class GraphBase(SQLModel):
+class GraphBase(BaseModel):
     name: str = Field(regex=r"^[a-zA-Z0-9_-]{1,64}$")
     description: str | None = None
     config: dict[Any, Any] = Field(default_factory=dict, sa_column=Column(JSONB))

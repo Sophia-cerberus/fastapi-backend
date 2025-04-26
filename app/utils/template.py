@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 import emails  # type: ignore
-# import aiosmtplib
+# TODO import aiosmtplib
 
 import jwt
 from jinja2 import Template

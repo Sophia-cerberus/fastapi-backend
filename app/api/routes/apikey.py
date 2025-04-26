@@ -4,7 +4,7 @@ from fastapi import APIRouter
 
 from app.core.security import generate_apikey, generate_short_apikey, get_password_hash
 
-from app.api.models import ApiKey, ApiKeyCreate, ApiKeyOut, ApiKeyOutPublic, Message, Team
+from app.api.models import ApiKey, ApiKeyCreate, ApiKeyOut, ApiKeyOutPublic, Message
 from app.api.dependencies import SessionDep, CurrentTeamAndUser, CurrentInstanceApiKey, InstanceStatementApiKey
 
 from fastapi_pagination.ext.sqlmodel import paginate
@@ -20,7 +20,7 @@ router = APIRouter(
 )
 
 @router.get("/{team_id}", response_model=Page[ApiKeyOutPublic])
-async def read_api_keys(
+async def read_api_key(
     session: SessionDep,
     statement: InstanceStatementApiKey,
     api_key_filter: ApiKeyFilter = FilterDepends(ApiKeyFilter)

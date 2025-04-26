@@ -20,7 +20,7 @@ from app.api.models import (
     UserOut,
     Message
 )
-from app.utils import (
+from app.utils.template import (
     generate_password_reset_token,
     generate_reset_password_email,
     send_email,
@@ -122,7 +122,7 @@ async def recover_password(email: str, session: SessionDep, background_tasks: Ba
     email_data = generate_reset_password_email(
         email_to=user.email, email=email, token=password_reset_token
     )
-    background_tasks(
+    background_tasks.add_task(
         send_email,
         email_to=user.email,
         subject=email_data.subject,

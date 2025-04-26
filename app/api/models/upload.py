@@ -4,9 +4,10 @@ import uuid
 
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Column, Field, Index, SQLModel
+from app.api.utils.models import BaseModel
 
 
-class UploadBase(SQLModel):
+class UploadBase(BaseModel):
     description: str
 
 

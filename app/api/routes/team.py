@@ -1,26 +1,17 @@
-from datetime import datetime
-from typing import Any, Dict
-import uuid
+from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import StreamingResponse
-from sqlmodel import select
+from fastapi import APIRouter, HTTPException
 
 from app.api.dependencies import (
     SessionDep, CurrentInstanceTeam,
-    ValidateCreateInTeam, ValidateUpdateOnTeam, CurrentUser, InstanceStatementTeam, 
-    create_member_for_team
+    ValidateCreateInTeam, ValidateUpdateOnTeam, CurrentUser, InstanceStatementTeam
 )
-# from app.core.graph.build import generator
 from app.api.models import (
     Message,
     Team,
-    TeamChat,
-    TeamChatPublic,
     TeamCreate,
     TeamOut,
     TeamUpdate,
-    Thread,
 )
 from fastapi_pagination.ext.sqlmodel import paginate
 from fastapi_pagination.links import Page
@@ -69,17 +60,11 @@ async def create_team(
     team = Team.model_validate(team_in, update={
         "owner_id": current_user.id,
     })
-    member = create_member_for_team(team.model_copy())
 
-    try:
-        session.add(team)
-        session.add(member)
-        await session.commit()
-        await session.refresh(team)
-        return team
-    except HTTPException as e:
-        await session.rollback()
-        raise e
+    session.add(team)
+    await session.commit()
+    await session.refresh(team)
+    return team
 
 
 
@@ -107,75 +92,3 @@ async def delete_team(session: SessionDep, team: CurrentInstanceTeam) -> Any:
     await session.delete(team)
     await session.commit()
     return Message(message="Team deleted successfully")
-
-
-# @router.post("/{id}/stream/{thread_id}")
-# async def stream(
-#     session: SessionDep,
-#     team: CurrentTeamAndUser,
-#     thread_id: uuid.UUID,
-#     team_chat: TeamChat,
-# ) -> StreamingResponse:
-#     """
-#     Stream a response to a user's input.
-#     """
-#     # Check if thread belongs to the team
-#     thread = await session.get(Thread, thread_id)
-#     if not thread:
-#         raise HTTPException(status_code=404, detail="Thread not found")
-#     if thread.team_id != id:
-#         raise HTTPException(
-#             status_code=400, detail="Thread does not belong to the team"
-#         )
-
-#     # Populate the skills and accessible uploads for each member
-#     members = team.members
-#     for member in members:
-#         member.skills = member.skills
-#         member.uploads = member.uploads
-#     graphs = team.graphs
-#     for graph in graphs:
-#         graph.config = graph.config
-#     return StreamingResponse(
-#         generator(team, members, team_chat.messages, thread_id, team_chat.interrupt),
-#         media_type="text/event-stream",
-#     )
-
-
-# @router.post("/{team_id}/stream-public/{thread_id}")
-# async def public_stream(
-#     session: SessionDep,
-#     team_id: uuid.UUID,
-#     team_chat: TeamChatPublic,
-#     thread_id: uuid.UUID,
-#     team: CurrentTeamFromKeys,
-# ) -> StreamingResponse:
-#     # Check if thread belongs to the team
-#     thread = await session.get(Thread, thread_id)
-#     message_content = team_chat.message.content if team_chat.message else ""
-#     if not thread:
-#         # create new thread
-#         thread = Thread(
-#             id=thread_id,
-#             query=message_content,
-#             updated_at=datetime.now(),
-#             team_id=team_id,
-#         )
-#         session.add(thread)
-#         await session.commit()
-#         await session.refresh(thread)
-#     else:
-#         if thread.team_id != team_id:
-#             raise HTTPException(
-#                 status_code=400, detail="Thread does not belong to the team"
-#             )
-#     # Populate the skills and accessible uploads for each member
-#     members = team.members
-#     for member in members:
-#         member.skills = member.skills
-#         member.uploads = member.uploads
-#     messages = [team_chat.message] if team_chat.message else []
-#     return StreamingResponse(
-#         generator(team, members, messages, thread_id, team_chat.interrupt),
-#         media_type="text/event-stream",
-#     )

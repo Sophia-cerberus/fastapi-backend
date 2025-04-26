@@ -24,7 +24,7 @@ from app.api.models import (
     Message,
     UpdateLanguageMe
 )
-from app.utils import generate_new_account_email, send_email
+from app.utils.template import generate_new_account_email, send_email
 from fastapi_pagination.ext.sqlmodel import paginate
 from fastapi_pagination.links import Page
 
@@ -200,18 +200,13 @@ async def register_user(session: SessionDep, user_in: UserRegister) -> Any:
 async def read_user_by_id(
     user_id: uuid.UUID, session: SessionDep, current_user: CurrentUser
 ) -> Any:
-    """
-    Get a specific user by id.
-    """
-    user = await session.get(User, user_id)
-    if user == current_user:
-        return user
-    if not current_user.is_superuser:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, 
-            detail="The user doesn't have enough privileges"
-        )
-
+    """Get a specific user by id."""
+    if not (user := await session.get(User, user_id)):
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    if not current_user.is_superuser and user != current_user:
+        raise HTTPException(status_code=403, detail="Not enough privileges")
+        
     return user
 
 
@@ -276,8 +271,6 @@ async def delete_user(
             status_code=status.HTTP_403_FORBIDDEN, 
             detail="Super users are not allowed to delete themselves"
         )
-    # statement = delete(Item).where(col(Item.owner_id) == user_id)
-    # await session.execute(statement)  # type: ignore
     await session.delete(user)
     await session.commit()
     return Message(message="User deleted successfully")

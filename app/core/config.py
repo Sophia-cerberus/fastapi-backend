@@ -171,12 +171,6 @@ class Settings(BaseSettings):
             'trace_id_filter': "app.utils.logger.filters.TraceIdFilter"
         },
         'handlers': {
-            # 'console': {
-            #     'level': 'INFO',
-            #     'class': 'aiologger.handlers.streams.AsyncStreamHandler',
-            #     'formatter': 'simple',
-            #     'filters': ['trace_id_filter'],
-            # },
             'error_file': {
                 'level': 'ERROR',
                 'class': 'aiologger.handlers.files.AsyncTimedRotatingFileHandler',
