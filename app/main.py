@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 
 from starlette.middleware.cors import CORSMiddleware
 
-from app.api.router import api_router
+from app.api.routes import api_router
 from app.core.config import settings
 from app.core.exceptions import register_exception_handlers
 from app.core.middleware import register_middleware
