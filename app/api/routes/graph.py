@@ -88,4 +88,4 @@ async def delete_graph(
     """
     await session.delete(graph)
     await session.commit()
-    return Message(message="Api key deleted successfully")
+    return Message(message="Graph deleted successfully")

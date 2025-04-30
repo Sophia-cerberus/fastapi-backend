@@ -45,9 +45,6 @@ class TenantBase(BaseModel):
     status: StatusTypes = Field(default=StatusTypes.ENABLE)
     dictionaries: uuid.UUID | None = Field(default=None, foreign_key="dictionaries.id")
     description: str | None = Field(default=None, max_length=256)
-    max_users: int = Field(default=5)
-    max_teams: int = Field(default=1)
-    max_storage_gb: float = Field(default=1.0)
 
 
 class TenantCreate(TenantBase):
@@ -59,9 +56,7 @@ class TenantUpdate(SQLModel):
     plan: TenantPlan | None = None
     status: StatusTypes | None = None
     description: str | None = None
-    max_users: int | None = None
-    max_teams: int | None = None
-    max_storage_gb: float | None = None
+    remark: str | None = None
 
 
 class Tenant(TenantBase, table=True):
@@ -71,6 +66,7 @@ class Tenant(TenantBase, table=True):
         index=True,
         nullable=False,
     )
+    public_key: str | None = Field(default=None)
 
 # Properties to return via API
 class TenantOut(TenantBase):

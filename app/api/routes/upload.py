@@ -13,7 +13,6 @@ from app.api.dependencies import (
     create_upload_dep, upload_create_form
 )
 from app.api.models import UploadCreate, UploadOut, UploadUpdate, Message
-# from app.services.vector_store import get_embedding, search_similar_vectors
 
 from fastapi_pagination.ext.sqlmodel import paginate
 from fastapi_pagination.links import Page

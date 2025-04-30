@@ -9,6 +9,7 @@ from pydantic_core import ValidationError
 from sqlmodel import select
 
 from app.api.dependencies import CurrentUser, SessionDep, get_current_active_superuser
+from app.api.utils.models import StatusTypes
 from app.core.config import settings
 from app.utils.logger import get_logger
 from app.api.models import (
@@ -46,7 +47,7 @@ async def login_token(
 
     if not (user and verify_password(form_data.password, user.hashed_password)):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect email or password")
-    elif not user.is_active:
+    elif user.status != StatusTypes.ENABLE:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Inactive user")
 
     token = generate_token(user.id)

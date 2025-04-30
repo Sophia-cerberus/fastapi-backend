@@ -1,8 +1,6 @@
 from typing import Optional
 import uuid
 
-from fastapi_filter import FilterDepends, with_prefix
-
 from app.api.models import Team
 
 from fastapi_filter.contrib.sqlalchemy import Filter
@@ -10,6 +8,8 @@ from fastapi_filter.contrib.sqlalchemy import Filter
 
 
 class TeamFilter(Filter):
+    tenant_id: Optional[uuid.UUID] = None
+    tenant__ilike: Optional[str] = None
     name__ilike: Optional[str] = None
     owner_id: Optional[uuid.UUID] = None
     owner__ilike: Optional[str] = None

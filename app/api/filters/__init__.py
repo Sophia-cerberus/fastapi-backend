@@ -6,3 +6,4 @@ from .provider import ProviderFilter
 from .model import ModelFilter
 from .thread import ThreadFilter
 from .upload import UploadFilter
+from .tenant import TenantFilter

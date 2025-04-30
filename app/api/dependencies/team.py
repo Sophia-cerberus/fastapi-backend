@@ -4,7 +4,7 @@ from fastapi import Depends, HTTPException, status
 from sqlmodel import select, SQLModel
 from sqlmodel.sql._expression_select_cls import SelectOfScalar
 
-from app.api.models import TeamCreate, Team, TeamUpdate, User, Tenant, TeamUserJoin
+from app.api.models import TeamCreate, Team, TeamUpdate, User, TeamUserJoin
 from app.api.utils.models import StatusTypes
 from app.core.config import settings
 

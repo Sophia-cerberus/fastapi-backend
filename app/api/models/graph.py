@@ -33,6 +33,7 @@ class GraphUpdate(GraphBase):
     id: uuid.UUID | None = None
     team_id: uuid.UUID | None = None
     parent: uuid.UUID | None = None
+    remark: str | None = None
 
 
 class Graph(GraphBase, table=True):
@@ -46,24 +47,6 @@ class Graph(GraphBase, table=True):
     team_id: uuid.UUID = Field(foreign_key="team.id", nullable=False)
 
     parent: uuid.UUID | None = Field(default=None, index=True, foreign_key="graph.id", nullable=True)
-
-    created_at: datetime | None = Field(
-        sa_column=Column(
-            DateTime(timezone=True),
-            nullable=False,
-            default=func.now(),
-            server_default=func.now(),
-        )
-    )
-    updated_at: datetime | None = Field(
-        sa_column=Column(
-            DateTime(timezone=True),
-            nullable=False,
-            default=func.now(),
-            onupdate=func.now(),
-            server_default=func.now(),
-        )
-    )
 
 
 class GraphOut(GraphBase):

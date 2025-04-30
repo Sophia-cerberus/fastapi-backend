@@ -37,4 +37,10 @@ from .thread import (
     CurrentInstance as CurrentInstanceThread,
     InstanceStatement as InstanceStatementThread
 )
+from .tenant import (
+    CurrentInstance as CurrentInstanceTenant,
+    InstanceStatement as InstanceStatementTenant,
+    ValidateCreateIn as ValidateCreateInTenant,
+    ValidateUpdateOn as ValidateUpdateOnTenant,
+)
 

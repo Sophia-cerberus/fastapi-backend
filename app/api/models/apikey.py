@@ -26,10 +26,6 @@ class ApiKey(ApiKeyBase, table=True):
     team_id: uuid.UUID | None = Field(default=None, foreign_key="team.id", nullable=False)
     owner_id: uuid.UUID | None = Field(default=None, foreign_key="user.id", nullable=True)
 
-    created_at: datetime | None = Field(
-        default_factory=lambda: datetime.now()
-    )
-
 
 class ApiKeyOut(ApiKeyBase):
     id: uuid.UUID | None = Field(default=None, primary_key=True)

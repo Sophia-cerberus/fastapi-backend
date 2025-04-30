@@ -25,6 +25,7 @@ class ModelProviderCreate(ModelProviderBase):
 class ModelProviderUpdate(ModelProviderBase):
     provider_name: str | None = Field(regex=r"^[a-zA-Z0-9_-]{1,64}$", default=None, unique=True)  # type: ignore[assignment]
     description: str | None = None
+    remark: str | None = None
 
 
 class ModelProvider(ModelProviderBase, table=True):
@@ -146,3 +147,4 @@ class ModelUpdate(ModelsBase):
     ai_model_name: str | None = None
     provider_id: int | None = None
     cmetadata: dict[str, Any] | None = None
+    remark: str | None = None

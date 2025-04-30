@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Any
 import uuid
 
+from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Column, Field, Index, SQLModel
 from app.api.utils.models import BaseModel
@@ -20,7 +21,8 @@ class UploadUpdate(UploadBase):
     description: str | None = None
     chunk_size: int | None = None
     chunk_overlap: int | None = None
-    last_modified: datetime
+    update_at: datetime
+    remark: str | None = None
 
 
 class Upload(UploadBase, table=True):
@@ -35,7 +37,6 @@ class Upload(UploadBase, table=True):
     owner_id: uuid.UUID | None = Field(default=None, foreign_key="user.id", nullable=True)
     team_id: uuid.UUID | None = Field(default=None, foreign_key="team.id", nullable=False)
 
-    last_modified: datetime = Field(default_factory=lambda: datetime.now(), nullable=False)
     status: bool = Field(default=False, nullable=False)
     chunk_size: int = Field(nullable=False)
     chunk_overlap: int = Field(nullable=False)
@@ -47,7 +48,7 @@ class Upload(UploadBase, table=True):
 class UploadOut(UploadBase):
     id: uuid.UUID
     name: str
-    last_modified: datetime
+    update_at: datetime
     owner_id: uuid.UUID | None = Field(default=None, foreign_key="user.id", nullable=True)
     file_type: str
     file_path: str

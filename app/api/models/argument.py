@@ -8,7 +8,6 @@ class DictionaryBase(BaseModel):
     name: str = Field(unique=True, index=True)
     status: StatusTypes = Field(default=StatusTypes.ENABLE)
     description: str | None = None
-    remark: str | None = Field(default=None, max_length=256)
 
 
 # Properties to receive via API on creation
@@ -21,7 +20,6 @@ class DictionaryUpdate(SQLModel):
     name: str | None = None
     status: StatusTypes | None = None
     description: str | None = None
-    remark: str | None = None
 
 
 # Database model, database table inferred from class name
@@ -47,8 +45,7 @@ class DictionaryArgumentBase(BaseModel):
     value: str = Field(max_length=256)
     is_default: bool = Field(default=False)
     status: StatusTypes = Field(default=StatusTypes.ENABLE)
-    sort: str = Field(max_length=256)
-    remark: str | None = Field(max_length=256, default=None)
+    sort: int = Field(max_length=256)
     dict_id: uuid.UUID = Field(foreign_key="dictionaries.id")
 
 
@@ -61,7 +58,7 @@ class DictionaryArgumentUpdate(SQLModel):
     value: str | None = None
     is_default: bool | None = None
     status: StatusTypes | None = None
-    sort: str | None = None
+    sort: int | None = None
     remark: str | None = None
 
 

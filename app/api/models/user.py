@@ -75,6 +75,7 @@ class UserUpdate(UserBase):
     email: EmailStr | None = None  # type: ignore
     phone: str | None = None
     password: str | None = None
+    status: StatusTypes | None = None
 
 
 class UserUpdateMe(SQLModel):
@@ -82,6 +83,8 @@ class UserUpdateMe(SQLModel):
     email: EmailStr | None = None
     phone: str | None = None
     avatar: str | None = None
+    remark: str | None = None
+
 
 class UpdatePassword(SQLModel):
     current_password: str
@@ -109,7 +112,7 @@ class UserOut(UserBase):
     id: uuid.UUID
 
 
-class InviteCodes(SQLModel, table=True):
+class InviteCodes(BaseModel, table=True):
     __tablename__ = "invite_codes"
     __table_args__ = (
         UniqueConstraint("code", name="unique_invite_code"),
@@ -126,7 +129,7 @@ class InviteCodes(SQLModel, table=True):
     status: StatusTypes = Field(default=StatusTypes.ENABLE)
 
 
-class TeamUserJoin(SQLModel, table=True):
+class TeamUserJoin(BaseModel, table=True):
     __tablename__ = "team_user_join"
     __table_args__ = (
         UniqueConstraint("team_id", "user_id", name="unique_team_user"),

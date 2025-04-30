@@ -12,11 +12,12 @@ class TeamBase(BaseModel):
 
 
 class TeamCreate(TeamBase):
-    workflow: str
+    pass
 
 
 class TeamUpdate(TeamBase):
     name: str | None = Field(regex=r"^[a-zA-Z0-9_-]{1,64}$", default=None)  # type: ignore[assignment]
+    remark: str | None = None
 
 
 class Team(TeamBase, table=True):
@@ -34,4 +35,3 @@ class Team(TeamBase, table=True):
 class TeamOut(TeamBase):
     id: uuid.UUID
     tenant_id: uuid.UUID
-    workflow: str
