@@ -4,15 +4,15 @@ from typing import Annotated, AsyncGenerator
 import uuid
 import os
 
-from fastapi import Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import Depends, File, Form, HTTPException, UploadFile
 from sqlmodel import or_, select
 from sqlmodel.sql._expression_select_cls import SelectOfScalar
 
-from app.api.models import Message, Upload, Team, UploadCreate, Embedding
+from app.api.models import Upload, UploadCreate, TeamUserJoin, RoleTypes, Team
+from app.api.utils.models import StatusTypes
 from app.core.storage.s3 import StorageClient
 from app.core.config import settings
 from app.core.string import uuid_8
-from app.core.rag import file_to_embeddings
 
 from .session import SessionDep
 from .team import CurrentTeamAndUser
@@ -22,12 +22,21 @@ async def instance_statement(current_team_and_user: CurrentTeamAndUser) ->  Sele
     
     statement = select(Upload)
     if not current_team_and_user.user.is_superuser:
-        statement = statement.join(Team).where(
-            or_(
-                Team.owner_id == current_team_and_user.user.id,        # Team owner可以访问整个Team的ApiKey
-                Upload.owner_id == current_team_and_user.user.id,       # 其他用户只能访问自己的ApiKey
+        if current_team_and_user.user.is_tenant_admin:
+            statement = statement.join(Team).where(
+                Team.tenant_id == current_team_and_user.team.tenant_id
             )
-        ).where(Upload.team_id == current_team_and_user.team.id)      # 限制在当前团队内
+        else:
+            statement = statement.join(TeamUserJoin).where(
+                TeamUserJoin.user_id == current_team_and_user.user.id,
+                TeamUserJoin.status == StatusTypes.ENABLE,
+                TeamUserJoin.team_id == current_team_and_user.team.id == Upload.team_id,
+            ).where(
+                or_(
+                    TeamUserJoin.role in [RoleTypes.ADMIN, RoleTypes.MODERATOR, RoleTypes.OWNER],
+                    Upload.owner_id == current_team_and_user.user.id
+                )
+            )      # 限制在当前团队内
 
     return statement
 

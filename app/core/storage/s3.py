@@ -3,8 +3,6 @@ import aioboto3
 from botocore.exceptions import ClientError, NoCredentialsError
 from app.core.config import settings
 
-UNEXPECTED_ERROR_MESSAGE = "An unexpected error occurred"
-
 
 class StorageClient:
 
@@ -63,8 +61,6 @@ class StorageClient:
                 raise ValueError(f"Unexpected error: {e}")
         except NoCredentialsError as e:
             raise NoCredentialsError(f"Unable to locate credentials: {e}")
-        except Exception as e:
-            raise Exception(f"{UNEXPECTED_ERROR_MESSAGE}: {str(e)}")
         
     async def complete_upload(self, bucket_name, remote_path, upload_id, parts):
         try:
@@ -83,8 +79,6 @@ class StorageClient:
                 raise ValueError(f"Unexpected error: {e}") 
         except NoCredentialsError as e:
             raise NoCredentialsError(f"Unable to locate credentials: {e}")
-        except Exception as e:
-            raise Exception(f"{UNEXPECTED_ERROR_MESSAGE}: {str(e)}")
 
     async def abort_upload(self, bucket_name, remote_path, upload_id):
         try:
@@ -102,8 +96,6 @@ class StorageClient:
                 raise ValueError(f"Unexpected error: {e}")
         except NoCredentialsError as e:
             raise NoCredentialsError(f"Unable to locate credentials: {e}")
-        except Exception as e:
-            raise Exception(f"{UNEXPECTED_ERROR_MESSAGE}: {str(e)}")
 
     async def stat_object(self, bucket_name, remote_path):
         try:
@@ -117,8 +109,6 @@ class StorageClient:
                 raise ValueError(f"Unexpected error: {e}")
         except NoCredentialsError as e:
             raise NoCredentialsError(f"Unable to locate credentials: {e}")
-        except Exception as e:
-            raise Exception(f"{UNEXPECTED_ERROR_MESSAGE}: {str(e)}")
     
     async def get_object(self, bucket_name, remote_path, transferred_bytes=0):
         range_param = 'bytes={}-'.format(transferred_bytes)
@@ -132,5 +122,3 @@ class StorageClient:
                 raise ValueError(f"Unexpected error: {e}")
         except NoCredentialsError as e:
             raise NoCredentialsError(f"Unable to locate credentials: {e}")
-        except Exception as e:
-            raise Exception(f"{UNEXPECTED_ERROR_MESSAGE}: {str(e)}")

@@ -25,7 +25,8 @@ from .team import (
     CurrentTeamAndUser,
 )
 from .user import (
-    get_current_active_superuser, CurrentUser, get_current_user, SessionDep
+    get_current_active_superuser, CurrentUser, get_current_user, SessionDep,
+    InstanceStatementUsers, GetUserById, CheckUserUpdatePermission
 )
 from .upload import (
     CurrentInstance as CurrentInstanceUpload,
@@ -41,6 +42,21 @@ from .tenant import (
     CurrentInstance as CurrentInstanceTenant,
     InstanceStatement as InstanceStatementTenant,
     ValidateCreateIn as ValidateCreateInTenant,
-    ValidateUpdateOn as ValidateUpdateOnTenant,
+    ValidateUpdateOn as ValidateUpdateTenant,
+)
+from .dataset import (
+    ValidateCreateIn as ValidateCreateInDataset,
+    ValidateUpdateIn as ValidateUpdateInDataset,
+    CurrentInstance as CurrentInstanceDataset,
+    InstanceStatement as InstanceStatementDataset
+)
+from .embedding import (
+    CurrentInstance as CurrentInstanceEmbedding,
+    InstanceStatement as InstanceStatementEmbedding,
+)
+from .user import (
+    InstanceStatement as InstanceStatementUser,
+    CurrentInstance as CurrentInstanceUser,
+    UserWithUpdatePermission,
 )
 

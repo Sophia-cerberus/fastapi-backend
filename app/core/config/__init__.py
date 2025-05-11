@@ -1,5 +1,4 @@
 import os
-import sys
 import warnings
 from typing import Annotated, Any, Literal
 from pydantic import (
@@ -12,10 +11,8 @@ from pydantic import (
     model_validator,
 )
 from pydantic_core import MultiHostUrl
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import SettingsConfigDict, BaseSettings
 from typing_extensions import Self
-
-
 
 def parse_cors(v: Any) -> list[str] | str:
     if isinstance(v, str) and not v.startswith("["):
@@ -104,6 +101,26 @@ class Settings(BaseSettings):
     AWS_S3_UPLOAD_BUFFER: int = 5 * 1024 * 1024  # 5MB 分块大小
     AWS_S3_DOWNLOAD_BUFFER: int = 1024 * 1024
     AWS_S3_UPLOAD_PREFIX: str
+
+    """Milvus 配置"""
+    MILVUS_HOST: str
+    MILVUS_PORT: int
+    MILVUS_USER: str
+    MILVUS_PASSWORD: str
+    MILVUS_DB_NAME: str = "default"
+    MILVUS_ASYNC: bool = True
+    MILVUS_INDEX_TYPE: str = "IVF_FLAT"
+    MILVUS_DIMENSION: int = 1024
+    MILVUS_METRIC_TYPE: str = "L2"
+    MILVUS_MAX_RETRIES: int = 3
+    MILVUS_RETRY_DELAY: float = 1.0
+    MILVUS_INDEX_PARAMS: dict[str, Any] = {
+        "nlist": 1024,
+        "nprobe": 10,
+        "ef": 1024,
+        "m": 16,
+        "ef_construction": 1024,
+    }
 
     @model_validator(mode="after")
     def _set_default_emails_from(self) -> Self:

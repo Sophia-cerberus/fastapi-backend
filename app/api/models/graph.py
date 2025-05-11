@@ -4,7 +4,7 @@ import uuid
 
 from sqlalchemy.dialects.postgresql import JSONB
 
-from sqlmodel import Column, DateTime, Field, func
+from sqlmodel import Column, Field
 from app.api.utils.models import BaseModel
 
 
@@ -20,8 +20,6 @@ class GraphBase(BaseModel):
 
 
 class GraphCreate(GraphBase):
-    created_at: datetime
-    updated_at: datetime
     team_id: uuid.UUID
     owner_id: uuid.UUID
     parent: uuid.UUID | None = None
@@ -29,7 +27,6 @@ class GraphCreate(GraphBase):
 
 class GraphUpdate(GraphBase):
     name: str | None = None
-    updated_at: datetime
     id: uuid.UUID | None = None
     team_id: uuid.UUID | None = None
     parent: uuid.UUID | None = None

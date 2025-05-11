@@ -20,11 +20,11 @@ from .thread import (
     Thread, ThreadBase, ThreadCreate, ThreadOut, ThreadRead, ThreadUpdate
 )
 from .upload import (
-    Upload, UploadBase, UploadCreate, UploadOut, UploadUpdate, Embedding
+    Upload, UploadBase, UploadCreate, UploadOut, UploadUpdate
 )
 from .user import (
     UpdateLanguageMe, UpdatePassword, User, UserBase, UserCreate, UserOut,
-    UserRegister, UserUpdate, UserUpdateMe, TeamUserJoin, InviteCodes
+    UserRegister, UserUpdate, UserUpdateMe, TeamUserJoin, InviteCodes, RoleTypes
 )
 from .tenant import (
     Tenant, TenantBase, TenantCreate, TenantOut, TenantUpdate
@@ -33,6 +33,12 @@ from .argument import (
     Dictionary, DictionaryBase, DictionaryCreate, DictionaryOut, DictionaryUpdate,
     DictionaryArgument, DictionaryArgumentBase, DictionaryArgumentCreate, DictionaryArgumentOut,
     DictionaryArgumentUpdate
+)
+from .dataset import (
+    Dataset, DatasetBase, DatasetCreate, DatasetOut, DatasetUpdate
+)
+from .embedding import (
+    Embedding, EmbeddingBase, EmbeddingCreate, EmbeddingOut, EmbeddingUpdate
 )
 
 from sqlmodel import Field, SQLModel

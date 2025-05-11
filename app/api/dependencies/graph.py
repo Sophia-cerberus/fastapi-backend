@@ -5,7 +5,8 @@ from fastapi import Depends, HTTPException, status
 from sqlmodel import or_, select
 from sqlmodel.sql._expression_select_cls import SelectOfScalar
 
-from app.api.models import Graph, GraphCreate, GraphUpdate, Team
+from app.api.models import Graph, GraphCreate, GraphUpdate, TeamUserJoin, RoleTypes, Team
+from app.api.utils.models import StatusTypes
 from app.core.config import settings
 
 from .team import CurrentTeamAndUser
@@ -14,15 +15,24 @@ from .session import SessionDep
 
 async def instance_statement(current_team_and_user: CurrentTeamAndUser) ->  SelectOfScalar[Graph]:
     
-    statement = select(Graph)
+    statement: SelectOfScalar[Graph] = select(Graph)
     if not current_team_and_user.user.is_superuser:
-        statement = statement.join(Team).where(
-            or_(
-                Team.owner_id == current_team_and_user.user.id,        # Team owner可以访问整个Team的ApiKey
-                Graph.owner_id == current_team_and_user.user.id,       # 其他用户只能访问自己的ApiKey
-                Graph.is_public == True
+        if current_team_and_user.user.is_tenant_admin:
+            statement = statement.join(Team).where(
+                Team.tenant_id == current_team_and_user.team.tenant_id
             )
-        ).where(Graph.team_id == current_team_and_user.team.id)      # 限制在当前团队内
+        else:
+            statement = statement.join(TeamUserJoin).where(
+                TeamUserJoin.user_id == current_team_and_user.user.id,
+                TeamUserJoin.status == StatusTypes.ENABLE,
+                TeamUserJoin.team_id == current_team_and_user.team.id == Graph.team_id,
+            ).where(
+                or_(
+                    TeamUserJoin.role in [RoleTypes.ADMIN, RoleTypes.MODERATOR, RoleTypes.OWNER],
+                    Graph.owner_id == current_team_and_user.user.id,
+                    Graph.is_public == True
+                )
+            )      # 限制在当前团队内
 
     return statement
 

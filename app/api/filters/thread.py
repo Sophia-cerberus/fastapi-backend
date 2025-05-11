@@ -17,7 +17,6 @@ class ThreadFilter(Filter):
     updated_at: Optional[datetime] = None
 
     team_id: Optional[uuid.UUID] = None
-    team__ilike: Optional[str] = None
     query__ilike: Optional[str] = None
 
     order_by: Optional[list[str]] = None

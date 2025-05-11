@@ -1,19 +1,21 @@
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, HTTPException, status, BackgroundTasks
 
-from sqlmodel import select
+from sqlmodel import or_, select
 
 from app.api.dependencies import (
     CurrentUser,
     SessionDep,
-    get_current_active_superuser,
+    CurrentTeamAndUser,
+    InstanceStatementUsers,
+    CurrentInstanceUser,
 )
 from app.core.config import settings
 from app.core.security import get_password_hash, verify_password
 from app.api.models import (
-    Team,
+    TeamUserJoin,
     UpdatePassword,
     User,
     UserCreate,
@@ -22,7 +24,8 @@ from app.api.models import (
     UserUpdate,
     UserUpdateMe,
     Message,
-    UpdateLanguageMe
+    UpdateLanguageMe,
+    RoleTypes
 )
 from app.utils.template import generate_new_account_email, send_email
 from fastapi_pagination.ext.sqlmodel import paginate
@@ -37,29 +40,38 @@ router = APIRouter(
     prefix="/users", tags=["users"], 
 )
 
-@router.get(
-    "/",
-    dependencies=[Depends(get_current_active_superuser)],
-    response_model=Page[UserOut]
-)
-async def read_users(session: SessionDep, user_filter: UserFilter = FilterDepends(UserFilter)) -> Any:
+@router.get("/", response_model=Page[UserOut])
+async def read_users(
+    session: SessionDep, 
+    statement: InstanceStatementUsers,
+    user_filter: UserFilter = FilterDepends(UserFilter)
+) -> Any:
     """
-    Retrieve users.
+    Get user list.
     """
-    statement = select(User)
     statement = user_filter.filter(statement)
     statement = user_filter.sort(statement)
     return await paginate(session, statement)
 
 
-@router.post(
-    "/", dependencies=[Depends(get_current_active_superuser)], response_model=UserOut
-)
-async def create_user(*, session: SessionDep, user_in: UserCreate, background_tasks: BackgroundTasks) -> Any:
+@router.post("/", response_model=UserOut)
+async def create_user(
+    *, 
+    session: SessionDep, 
+    current_team_and_user: CurrentTeamAndUser,
+    user_in: UserCreate, 
+    background_tasks: BackgroundTasks
+) -> Any:
     """
-    Create new user.
+    Create a new user.
     """
-    statement = select(User).where(User.email == user_in.email)
+    # 检查邮箱是否已存在
+    statement = select(User).where(
+        or_(
+            User.email == user_in.email,
+            User.phone == user_in.phone
+        )
+    )
     user = await session.scalar(statement)
     if user:
         raise HTTPException(
@@ -67,13 +79,45 @@ async def create_user(*, session: SessionDep, user_in: UserCreate, background_ta
             detail="The user with this email already exists in the system."
         )
 
+    # 权限检查
+    if not current_team_and_user.user.is_superuser and not current_team_and_user.user.is_tenant_admin:
+        # 检查当前用户在团队中的角色
+        user_role_statement = select(TeamUserJoin.role).where(
+            TeamUserJoin.user_id == current_team_and_user.user.id,
+            TeamUserJoin.team_id == current_team_and_user.team.id
+        )
+        user_role = await session.scalar(user_role_statement)
+        
+        if not user_role or user_role not in [RoleTypes.ADMIN, RoleTypes.OWNER]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only team admins or owners can create new users"
+            )
+
+    # 创建用户
     user = User.model_validate(
         user_in, update={"hashed_password": get_password_hash(user_in.password)}
     )
+    
     session.add(user)
     await session.commit()
     await session.refresh(instance=user)
 
+    # 为非超级管理员创建的用户，自动添加到当前团队
+    if not current_team_and_user.user.is_superuser:
+        team_user = TeamUserJoin(
+            team_id=current_team_and_user.team.id,
+            user_id=user.id,
+            role=RoleTypes.MEMBER,
+            status=user.status,
+            invite_by=current_team_and_user.user.id,
+            # 这里需要创建或获取一个邀请码
+            invite_code=uuid.uuid4()  # 这里简化处理，实际应该创建一个真实的邀请码
+        )
+        session.add(team_user)
+        await session.commit()
+
+    # 发送欢迎邮件
     if settings.emails_enabled and user_in.email:
         email_data = generate_new_account_email(
             email_to=user_in.email, username=user_in.email, password=user_in.password
@@ -85,6 +129,7 @@ async def create_user(*, session: SessionDep, user_in: UserCreate, background_ta
             html_content=email_data.html_content,
         )
     return user
+
 
 @router.patch("/me/language", response_model=UserOut)
 async def update_user_language(
@@ -111,16 +156,6 @@ async def update_user_me(
     """
     Update own user.
     """
-    if user_in.email:
-        statement = select(User).where(User.email == user_in.email)
-        existing_user = await session.scalar(statement)
-
-        if existing_user and existing_user.id != current_user.id:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT, 
-                detail="User with this email already exists"
-            )
-
     current_user.sqlmodel_update(user_in)
     session.add(current_user)
     await session.commit()
@@ -164,10 +199,10 @@ async def delete_user_me(session: SessionDep, current_user: CurrentUser) -> Any:
     """
     Delete own user.
     """
-    if current_user.is_superuser:
+    if current_user.is_superuser or current_user.is_tenant_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, 
-            detail="Super users are not allowed to delete themselves"
+            detail="Super users and tenant admins are not allowed to delete themselves"
         )
 
     await session.delete(current_user)
@@ -180,11 +215,16 @@ async def register_user(session: SessionDep, user_in: UserRegister) -> Any:
     """
     Create new user without the need to be logged in.
     """
-    statement = select(User).where(User.email == user_in.email)
+    statement = select(User).where(
+        or_(
+            User.email == user_in.email,
+            User.phone == user_in.phone
+        )
+    )
     if await session.scalar(statement):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, 
-            detail="The user with this email already exists in the system"
+            detail="The user with this email or phone already exists in the system"
         )
 
     user = User.model_validate(
@@ -198,21 +238,15 @@ async def register_user(session: SessionDep, user_in: UserRegister) -> Any:
 
 @router.get("/{user_id}", response_model=UserOut)
 async def read_user_by_id(
-    user_id: uuid.UUID, session: SessionDep, current_user: CurrentUser
+    user: CurrentInstanceUser
 ) -> Any:
     """Get a specific user by id."""
-    if not (user := await session.get(User, user_id)):
-        raise HTTPException(status_code=404, detail="User not found")
-        
-    if not current_user.is_superuser and user != current_user:
-        raise HTTPException(status_code=403, detail="Not enough privileges")
-        
+
     return user
 
 
 @router.patch(
     "/{user_id}",
-    dependencies=[Depends(get_current_active_superuser)],
     response_model=UserOut,
 )
 async def update_user(
@@ -220,6 +254,7 @@ async def update_user(
     session: SessionDep,
     user_id: uuid.UUID,
     user_in: UserUpdate,
+    user: CheckUserUpdatePermission,
 ) -> Any:
     """
     Update a user.
@@ -232,7 +267,6 @@ async def update_user(
         )
     
     if user_in.email:
-
         statement = select(User).where(User.email == user_in.email)
         existing_user = await session.scalar(statement)
         if existing_user and existing_user.id != user_id:
@@ -241,28 +275,26 @@ async def update_user(
                 detail="User with this email already exists"
             )
 
-    user.sqlmodel_update(user_in, update={
-        "hashed_password": get_password_hash(user_in.password)
-    })
+    update_data = {}
+    if user_in.password:
+        update_data["hashed_password"] = get_password_hash(user_in.password)
+    
+    user.sqlmodel_update(user_in, update=update_data)
     session.add(user)
     await session.commit()
     await session.refresh(user)
     return user
 
 
-@router.delete("/{user_id}", dependencies=[Depends(get_current_active_superuser)])
+@router.delete("/{user_id}")
 async def delete_user(
-    session: SessionDep, current_user: CurrentUser, user_id: uuid.UUID
+    session: SessionDep, user: CurrentInstanceUser, current_user: CurrentUser
 ) -> Message:
     """
     Delete a user.
     """
-    if not (user := await session.get(User, user_id)):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, 
-            detail="User not found"
-        )
-    elif user != current_user and not current_user.is_superuser:
+
+    if user != current_user and not current_user.is_superuser:
         raise HTTPException(
             status_code=403, detail="The user doesn't have enough privileges"
         )

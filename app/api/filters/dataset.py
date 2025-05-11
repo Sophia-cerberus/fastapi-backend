@@ -2,14 +2,19 @@ from datetime import datetime
 from typing import Optional
 import uuid
 
-from app.api.models import Graph
+from app.api.models import Dataset
+from app.api.utils.models import StatusTypes
 
 from fastapi_filter.contrib.sqlalchemy import Filter
 
 
-class GraphFilter(Filter):
+class DatasetFilter(Filter):
+    name__ilike: Optional[str] = None
+    description__ilike: Optional[str] = None
     owner_id: Optional[uuid.UUID] = None
     team_id: Optional[uuid.UUID] = None
+    parent_id: Optional[uuid.UUID] = None
+    status: Optional[StatusTypes] = None
 
     created_at__gt: Optional[datetime] = None
     created_at__gte: Optional[datetime] = None
@@ -25,7 +30,7 @@ class GraphFilter(Filter):
     search: Optional[str] = None
 
     class Constants(Filter.Constants):
-        model = Graph
+        model = Dataset
         ordering_field_name = "order_by"
         search_field_name = "search"
-        search_model_fields = ["team", "description"]    
+        search_model_fields = ["name", "description"] 

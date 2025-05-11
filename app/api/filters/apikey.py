@@ -11,10 +11,7 @@ class ApiKeyFilter(Filter):
     hashed_key: Optional[str] = None
     short_key: Optional[str] = None
     team_id: Optional[uuid.UUID] = None
-    team__ilike: Optional[str] = None
-
     onwer_id: Optional[uuid.UUID] = None
-    owner__ilike: Optional[str] = None
 
     created_at__gt: Optional[datetime] = None
     created_at__gte: Optional[datetime] = None

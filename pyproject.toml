@@ -52,6 +52,7 @@ dependencies = [
     "qdrant-client",
     "structlog>=25.2.0",
     "aiologger>=0.7.0",
+    "pymilvus>=2.5.8",
 ]
 
 [tool.uv]

@@ -7,3 +7,5 @@ from .model import ModelFilter
 from .thread import ThreadFilter
 from .upload import UploadFilter
 from .tenant import TenantFilter
+from .dataset import DatasetFilter
+from .embedding import EmbeddingFilter

@@ -9,10 +9,7 @@ from fastapi_filter.contrib.sqlalchemy import Filter
 
 class TeamFilter(Filter):
     tenant_id: Optional[uuid.UUID] = None
-    tenant__ilike: Optional[str] = None
-    name__ilike: Optional[str] = None
     owner_id: Optional[uuid.UUID] = None
-    owner__ilike: Optional[str] = None
     workflow: Optional[str] = None
     order_by: Optional[list[str]] = None
     search: Optional[str] = None

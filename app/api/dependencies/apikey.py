@@ -5,21 +5,32 @@ from fastapi import Depends, HTTPException, status
 from sqlmodel import or_, select
 from sqlmodel.sql._expression_select_cls import SelectOfScalar
 
-from app.api.models import ApiKey, Team
+from app.api.models import ApiKey, TeamUserJoin, RoleTypes, Team
+from app.api.utils.models import StatusTypes
 from .team import CurrentTeamAndUser
 from .session import SessionDep
 
 
+
 async def instance_statement(current_team_and_user: CurrentTeamAndUser) ->  SelectOfScalar[ApiKey]:
     
-    statement = select(ApiKey)
+    statement: SelectOfScalar[ApiKey] = select(ApiKey)
     if not current_team_and_user.user.is_superuser:
-        statement = statement.join(Team).where(
-            or_(
-                Team.owner_id == current_team_and_user.user.id,        # Team owner可以访问整个Team的ApiKey
-                ApiKey.owner_id == current_team_and_user.user.id       # 其他用户只能访问自己的ApiKey
+        if current_team_and_user.user.is_tenant_admin:
+            statement = statement.join(Team).where(
+                Team.tenant_id == current_team_and_user.team.tenant_id
             )
-        ).where(ApiKey.team_id == current_team_and_user.team.id)      # 限制在当前团队内
+        else:
+            statement = statement.join(TeamUserJoin).where(
+                TeamUserJoin.user_id == current_team_and_user.user.id,
+                TeamUserJoin.status == StatusTypes.ENABLE,
+                TeamUserJoin.team_id == current_team_and_user.team.id == ApiKey.team_id,
+            ).where(
+                or_(
+                    TeamUserJoin.role in [RoleTypes.ADMIN, RoleTypes.MODERATOR, RoleTypes.OWNER],
+                    ApiKey.owner_id == current_team_and_user.user.id       # 其他用户只能访问自己的ApiKey
+                )
+            )     
     return statement
 
 

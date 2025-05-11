@@ -1,10 +1,7 @@
 from datetime import datetime
-from typing import Any
 import uuid
 
-from sqlalchemy import func
-from sqlalchemy.dialects.postgresql import JSONB
-from sqlmodel import Column, Field, Index, SQLModel
+from sqlmodel import Field
 from app.api.utils.models import BaseModel
 
 
@@ -15,6 +12,7 @@ class UploadBase(BaseModel):
 class UploadCreate(UploadBase):
     chunk_size: int
     chunk_overlap: int
+    dataset_id: uuid.UUID
 
 
 class UploadUpdate(UploadBase):
@@ -36,6 +34,7 @@ class Upload(UploadBase, table=True):
 
     owner_id: uuid.UUID | None = Field(default=None, foreign_key="user.id", nullable=True)
     team_id: uuid.UUID | None = Field(default=None, foreign_key="team.id", nullable=False)
+    dataset_id: uuid.UUID = Field(foreign_key="dataset.id", nullable=False)
 
     status: bool = Field(default=False, nullable=False)
     chunk_size: int = Field(nullable=False)
@@ -49,40 +48,9 @@ class UploadOut(UploadBase):
     id: uuid.UUID
     name: str
     update_at: datetime
-    owner_id: uuid.UUID | None = Field(default=None, foreign_key="user.id", nullable=True)
+    owner_id: uuid.UUID
     file_type: str
     file_path: str
     file_size: float
     chunk_size: int
     chunk_overlap: int
-
-
-
-class Embedding(SQLModel, table=True):
-    """Embedding store."""
-
-    id: uuid.UUID | None = Field(
-        default_factory=uuid.uuid4,
-        primary_key=True,
-        index=True,
-        nullable=False,
-    )
-
-    upload_id: uuid.UUID | None = Field(default=None, foreign_key="upload.id", nullable=False, ondelete="CASCADE")
-
-    document: str = Field(nullable=True)
-    cmetadata: dict[Any, Any] = Field(default_factory=dict, sa_column=Column(JSONB))
-
-    owner_id: uuid.UUID | None = Field(foreign_key="user.id", nullable=False)
-
-    team_id: uuid.UUID = Field(foreign_key="team.id", nullable=False)
-
-
-    __table_args__ = (
-        Index(
-            "ix_metadata_gin",
-            "cmetadata",
-            postgresql_using="gin",
-            postgresql_ops={"cmetadata": "jsonb_path_ops"},
-        ),
-    )

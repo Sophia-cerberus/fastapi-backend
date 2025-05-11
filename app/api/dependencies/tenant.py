@@ -17,10 +17,10 @@ async def instance_statement(current_team_and_user: CurrentTeamAndUser) ->  Sele
     
     statement = select(Tenant)
     if not current_team_and_user.user.is_superuser:
-        statement = statement.join(
-            Team, Team.tenant_id == Tenant.id
+        statement: SelectOfScalar[Tenant] = statement.join(
+            Team
         ).join(
-            TeamUserJoin , TeamUserJoin.team_id == Team.id
+            TeamUserJoin
         ).where(
             TeamUserJoin.team_id == current_team_and_user.team.id,
             TeamUserJoin.status == StatusTypes.ENABLE

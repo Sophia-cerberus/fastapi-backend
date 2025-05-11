@@ -11,3 +11,4 @@ htmlcov
 .DS_Store
 .data
 logs
+volumes

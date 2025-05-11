@@ -1,6 +1,6 @@
 import copy
 import os
-from typing import Any, AsyncGenerator
+from typing import Any, AsyncGenerator, AsyncIterator
 from langchain_community.document_loaders import (
     PyMuPDFLoader,
     UnstructuredWordDocumentLoader,
@@ -11,11 +11,13 @@ from langchain_community.document_loaders import (
     UnstructuredMarkdownLoader
 )
 from langchain_community.document_loaders.base import BaseLoader 
+from langchain_core.documents.base import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_ollama import OllamaEmbeddings
 
 from app.api.models import Embedding, Upload
 from app.core.config import settings
+from app.core.storage.milvus import MilvusClient
 
 
 # 支持不同类型文件的处理器
@@ -45,10 +47,10 @@ def get_loader(file_type: str) -> BaseLoader:
 
 async def file_to_embeddings(
     file: Upload, 
-    embeddings: OllamaEmbeddings = OllamaEmbeddings(model="mxbai-embed-large")
+    embeddings: OllamaEmbeddings = OllamaEmbeddings(model="mxbai-embed-large"),
+    
 ) -> AsyncGenerator[Embedding, Any]:
     
-
     bucket_name: str = settings.AWS_S3_BUCKET_NAME
     endpoint_url: str = settings.AWS_S3_ENDPOINT_URL
     remote_path: str = file.file_path
@@ -57,12 +59,13 @@ async def file_to_embeddings(
 
     loader_class: type[BaseLoader] = get_loader(file.file_type)
     loader = loader_class(file_path)
-    documents = loader.alazy_load()
+    documents: AsyncIterator[Document] = loader.alazy_load()
 
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=file.chunk_size,
         chunk_overlap=file.chunk_overlap,
     )
+    text_splitter.split_documents(documents)
 
     async for doc in documents:
 
@@ -71,21 +74,18 @@ async def file_to_embeddings(
 
         index = 0
         previous_chunk_len = 0
-
         for chunk in text_splitter.split_text(text):
 
-            chunk = chunk.replace("\x00", "")
-
-            metadata = copy.deepcopy(metadata)
+            metadata_copy = copy.deepcopy(metadata)
             offset = index + previous_chunk_len - text_splitter._chunk_overlap
             index = text.find(chunk, max(0, offset))
-            metadata["start_index"] = index
+            metadata_copy["start_index"] = index
             previous_chunk_len = len(chunk)
-
+            
             embedding = Embedding.model_validate({
-                "embedding": embeddings.embed_documents([chunk])[0],
+                "embedding": embeddings.embed_query(chunk),
                 "document": chunk,
-                "cmetadata": metadata,
+                "cmetadata": metadata_copy,
                 "upload_id": file.id,
                 "owner_id": file.owner_id,
                 "team_id": file.team_id

@@ -1,18 +1,13 @@
-import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
-
-from sqlmodel import select
+from fastapi import APIRouter, Depends
 
 from app.api.dependencies import (
-    CurrentUser,
     SessionDep,
     get_current_active_superuser,
     CurrentInstanceTenant, InstanceStatementTenant,
     ValidateCreateInTenant, ValidateUpdateOnTenant
 )
-from app.core.config import settings
 from app.api.models import (
     Message,
     TenantUpdate,
@@ -53,7 +48,12 @@ async def read_tenants(
 @router.post(
     "/", response_model=TenantOut
 )
-async def create_tenant(*, session: SessionDep, tenant_in: TenantCreate) -> Any:
+async def create_tenant(
+    *, 
+    session: SessionDep, 
+    tenant_in: TenantCreate,
+    _: ValidateCreateInTenant
+) -> Any:
     """
     Create new tenant.
     """

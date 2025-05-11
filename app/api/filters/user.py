@@ -9,6 +9,7 @@ class UserFilter(Filter):
     email__ilike: Optional[str] = None
     is_active: Optional[bool] = None
     is_superuser: Optional[bool] = None
+    is_tenant_admin: Optional[bool] = None
     full_name__ilike: Optional[str] = None
 
     order_by: Optional[list[str]] = None

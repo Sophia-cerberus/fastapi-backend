@@ -48,6 +48,7 @@ class UserBase(BaseModel):
     status: StatusTypes = Field(default=StatusTypes.ENABLE)
 
     is_superuser: bool = False
+    is_tenant_admin: bool = False
     full_name: str | None = None
     language: str = Field(default="en-US")
     dictionaries: uuid.UUID | None = Field(default=None, foreign_key="dictionaries.id")

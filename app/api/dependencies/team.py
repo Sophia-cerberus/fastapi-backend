@@ -1,4 +1,4 @@
-from typing import Annotated, Union
+from typing import Annotated, Union, Any
 import uuid
 from fastapi import Depends, HTTPException, status
 from sqlmodel import select, SQLModel
@@ -33,12 +33,13 @@ async def instance_statement(current_user: CurrentUser, tenant_id: uuid.UUID) ->
     statement = select(Team)
     
     if not current_user.is_superuser:
-        # Join with TeamUserJoin to get all teams the user is a member of
-        statement = statement.join(TeamUserJoin).where(
-            Team.tenant_id == tenant_id,
-            TeamUserJoin.user_id == current_user.id,
-            TeamUserJoin.status == StatusTypes.ENABLE
-        )
+        statement = statement.where(Team.tenant_id == tenant_id)
+        if not current_user.is_tenant_admin:
+            # Join with TeamUserJoin to get all teams the user is a member of
+            statement: SelectOfScalar[Team] = statement.join(TeamUserJoin).where(
+                TeamUserJoin.user_id == current_user.id,
+                TeamUserJoin.status == StatusTypes.ENABLE
+            )
     return statement
 
 
