@@ -39,31 +39,9 @@ class MilvusClient:
     """Milvus 客户端类"""
     
     def __init__(self, collection_name: str):
-        self._validate_settings()
         self.client = self._create_client()
         self._initialized = False
         self.collection_name = collection_name
-
-    def _validate_settings(self):
-        """验证设置参数"""
-        required_settings = [
-            'MILVUS_HOST',
-            'MILVUS_PORT',
-            'MILVUS_USER',
-            'MILVUS_PASSWORD',
-            'MILVUS_DB_NAME',
-            'MILVUS_DIMENSION',
-            'MILVUS_INDEX_TYPE',
-            'MILVUS_METRIC_TYPE'
-        ]
-        
-        for setting in required_settings:
-            if not hasattr(settings, setting):
-                raise ValueError(f"Missing required setting: {setting}")
-            
-            value = getattr(settings, setting)
-            if value is None or value == "":
-                raise ValueError(f"Setting {setting} cannot be empty")
 
     def _create_client(self) -> AsyncMilvusClient:
         """创建 Milvus 客户端"""

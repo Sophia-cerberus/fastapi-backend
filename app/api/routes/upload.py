@@ -9,8 +9,7 @@ from fastapi.responses import StreamingResponse
 
 from app.api.dependencies import (
     SessionDep, CurrentTeamAndUser, CurrentInstanceUpload, InstanceStatementUpload,
-    StorageClientDep,
-    create_upload_dep, upload_create_form
+    StorageClientDep, UploadCreateFormDep, create_upload_dep
 )
 from app.api.models import UploadCreate, UploadOut, UploadUpdate, Message
 
@@ -55,14 +54,13 @@ async def create_upload(
     session: SessionDep,
     current_team_and_user: CurrentTeamAndUser,
     storage_client: StorageClientDep,
-    upload_in: UploadCreate = Depends(upload_create_form), 
+    upload_in: UploadCreate = Depends(UploadCreateFormDep), 
     file: UploadFile = File(...),
 ) -> Any:
     """
     Create new upload.
     """
     queue = asyncio.Queue()  # 创建队列
-
     background_task = await create_upload_dep(
         session=session, 
         current_team_and_user=current_team_and_user, 

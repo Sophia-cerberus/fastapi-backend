@@ -7,7 +7,7 @@ from sqlmodel.sql._expression_select_cls import SelectOfScalar
 
 from app.api.models import ApiKey, TeamUserJoin, RoleTypes, Team
 from app.api.utils.models import StatusTypes
-from .team import CurrentTeamAndUser
+from .common import CurrentTeamAndUser
 from .session import SessionDep
 
 

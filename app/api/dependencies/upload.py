@@ -10,12 +10,11 @@ from sqlmodel.sql._expression_select_cls import SelectOfScalar
 
 from app.api.models import Upload, UploadCreate, TeamUserJoin, RoleTypes, Team
 from app.api.utils.models import StatusTypes
-from app.core.storage.s3 import StorageClient
 from app.core.config import settings
 from app.core.string import uuid_8
 
 from .session import SessionDep
-from .team import CurrentTeamAndUser
+from .common import CurrentTeamAndUser, StorageClientDep
 
 
 async def instance_statement(current_team_and_user: CurrentTeamAndUser) ->  SelectOfScalar[Upload]:
@@ -54,14 +53,6 @@ async def current_instance(
     return upload
 
 
-async def get_storage_client() -> AsyncGenerator[StorageClient, None]:
-    async with StorageClient() as client:
-        yield client
-
-
-StorageClientDep = Annotated[StorageClient, Depends(get_storage_client)]
-
-
 async def upload_create_form(
     description: str = Form(...),
     chunk_size: int = Form(...),
@@ -74,7 +65,8 @@ async def upload_create_form(
         chunk_overlap=chunk_overlap
     )
 
-async def create_upload(
+
+async def create_upload_dep(
     session: SessionDep,
     current_team_and_user: CurrentTeamAndUser,
     storage_client: StorageClientDep,
@@ -159,3 +151,4 @@ async def create_upload(
 
 InstanceStatement = Annotated[SelectOfScalar[Upload], Depends(instance_statement)]
 CurrentInstance = Annotated[Upload, Depends(current_instance)]
+UploadCreateFormDep = Annotated[UploadCreate, Depends(upload_create_form)]

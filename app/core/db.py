@@ -1,13 +1,14 @@
-from pydantic import PostgresDsn
-from sqlalchemy.ext.asyncio.engine import AsyncEngine
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.ext.asyncio import create_async_engine
 
 from sqlmodel import select
 
 from app.core.config import settings
 from app.api.models import User, UserCreate
 from app.core.security import get_password_hash
+
+from pydantic import PostgresDsn
+from sqlalchemy.ext.asyncio.engine import AsyncEngine
+from sqlalchemy.ext.asyncio import create_async_engine
 
 dsn: PostgresDsn = settings.SQLALCHEMY_RUNNABLE_DATABASE_URI
 engine: AsyncEngine = create_async_engine(dsn.unicode_string())
@@ -34,10 +35,13 @@ async def init_db(session: AsyncSession) -> None:
         user_in = UserCreate(
             email=settings.FIRST_SUPERUSER,
             password=settings.FIRST_SUPERUSER_PASSWORD,
+            phone=settings.FIRST_SUPERUSER_PHONE,
             is_superuser=True,
         )
         user = User.model_validate(
-            user_in, update={"hashed_password": get_password_hash(user_in.password)}
+            user_in, update={
+                "hashed_password": get_password_hash(user_in.password)
+            }
         )
         session.add(user)
         await session.commit()

@@ -18,7 +18,7 @@ def setup_handlers(logging_config, setup_name: str = "handlers", **kwargs):
         handler_class = import_string(handler.pop("class"))
 
         formatter = handler.pop("formatter")
-        filters = handler.pop("filters")
+        filters = handler.pop("filters", [])
         level = handler.pop("level", LogLevel.NOTSET)
 
         handler_instance = handler_class(**handler)
@@ -65,7 +65,7 @@ def get_logger(name: str) -> Logger:
     config_copy = copy.deepcopy(settings.LOGGING)
     
     for config, value in config_copy.items():
-        setup_class = getattr(sys.modules[__name__], func_name := f"setup_{config}", None)
+        setup_class = getattr(sys.modules[__name__], f"setup_{config}", None)
         if setup_class and callable(setup_class):
             setup_class(logging_config, **value)
     

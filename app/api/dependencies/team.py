@@ -1,31 +1,15 @@
-from typing import Annotated, Union, Any
+from typing import Annotated, Union
 import uuid
 from fastapi import Depends, HTTPException, status
-from sqlmodel import select, SQLModel
+from sqlmodel import select
 from sqlmodel.sql._expression_select_cls import SelectOfScalar
 
-from app.api.models import TeamCreate, Team, TeamUpdate, User, TeamUserJoin
+from app.api.models import TeamCreate, Team, TeamUpdate, TeamUserJoin
 from app.api.utils.models import StatusTypes
 from app.core.config import settings
 
 from .session import SessionDep
-from .user import CurrentUser
-
-
-class TeamAndUser(SQLModel):
-    team: Team
-    user: User
-
-
-async def get_current_team_and_user(
-    session: SessionDep,
-    team_id: uuid.UUID,
-    current_user: CurrentUser,
-) -> TeamAndUser:
-    """Return team if apikey belongs to it"""
-    if not (team := await session.get(Team, team_id)):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Team not found")
-    return TeamAndUser(team=team, user=current_user)
+from .common import CurrentUser
 
 
 async def instance_statement(current_user: CurrentUser, tenant_id: uuid.UUID) ->  SelectOfScalar[Team]:
@@ -92,4 +76,3 @@ InstanceStatement = Annotated[SelectOfScalar[Team], Depends(instance_statement)]
 CurrentInstance = Annotated[Team, Depends(current_instance)]
 ValidateCreateIn = Annotated[None, Depends(validate_create_in)]
 ValidateUpdateOn = Annotated[Team, Depends(validate_update_in)]
-CurrentTeamAndUser = Annotated[TeamAndUser, Depends(get_current_team_and_user)]

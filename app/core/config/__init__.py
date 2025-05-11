@@ -55,10 +55,10 @@ class Settings(BaseSettings):
     SENTRY_DSN: HttpUrl | None = None
     POSTGRES_SERVER: str
     POSTGRES_PORT: int = 5432
-    POSTGRES_USER: str
+    POSTGRES_USER: str = ""
     POSTGRES_PASSWORD: str = ""
     POSTGRES_DB: str = ""
-    
+
     @computed_field  # type: ignore[prop-decorator]
     @property
     def SQLALCHEMY_MIGRATE_DATABASE_URI(self) -> PostgresDsn:
@@ -70,6 +70,7 @@ class Settings(BaseSettings):
             port=self.POSTGRES_PORT,
             path=self.POSTGRES_DB,
         )
+        
     
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -105,8 +106,8 @@ class Settings(BaseSettings):
     """Milvus 配置"""
     MILVUS_HOST: str
     MILVUS_PORT: int
-    MILVUS_USER: str
-    MILVUS_PASSWORD: str
+    MILVUS_USER: str | None = None
+    MILVUS_PASSWORD: str | None = None
     MILVUS_DB_NAME: str = "default"
     MILVUS_ASYNC: bool = True
     MILVUS_INDEX_TYPE: str = "IVF_FLAT"
@@ -138,7 +139,7 @@ class Settings(BaseSettings):
     EMAIL_TEST_USER: EmailStr = "test@example.com"
     FIRST_SUPERUSER: EmailStr
     FIRST_SUPERUSER_PASSWORD: str
-
+    FIRST_SUPERUSER_PHONE: str
     def _check_default_secret(self, var_name: str, value: str | None) -> None:
         if value == "changethis":
             message = (
@@ -174,12 +175,16 @@ class Settings(BaseSettings):
         'version': 1,
         'disable_existing_loggers': False,
         'formatters': {
+            'console': {
+                'format': '%(asctime)s [%(levelname)s] - %(message)s',
+                "datefmt": "%Y-%m-%d %H:%M:%S"
+            },
             'simple': {
                 'format': '%(asctime)s [%(trace_id)s] [%(name)s] [%(filename)s:%(lineno)d] [%(levelname)s] - %(message)s',
                 "datefmt": "%Y-%m-%d %H:%M:%S"
             },
             'standard': {
-                'format': '{"time": "%(asctime)s", "level": "%(levelname)s", "func": "%(name)s.%(module)s.%(funcName)s:%(lineno)d", "trace_id": "%(trace_id)s",  "message": "%(message)s"}',
+                'format': '{"time": "%(asctime)s", "level": "%(levelname)s", "func": "%(name)s.%(module)s.%(funcName)s:%(lineno)d", "trace_id": "%(trace_id)s", "message": "%(message)s"}',
                 'datefmt': '%Y-%m-%d %H:%M:%S'
             }
         },

@@ -30,17 +30,19 @@ class CoreMiddleware(BaseHTTPMiddleware):
 
         response.headers["X-Request-IP-Host"] = client_ip
 
-        message = dumps({
-            "path_params": dumps(request.path_params, ensure_ascii=False),
+        extra = {
+            "path_params": str(request.path_params, ensure_ascii=False),
             "query_params": str(request.query_params),
             "method": request.method,
             "url": request.url.hostname,
+            "path": request.url.path,
             "status_code": response.status_code,
             "process_time": f"{process_time:.4f}s",
             "client_ip": client_ip,
             "trace_id": trace_id_ctx.trace_id,
             "user_agent": request.headers.get("User-Agent"),
-        }, ensure_ascii=False)
+        }
+        message = ", ".join(f"{key}={value}" for key, value in extra.items())
 
         await logger.info(message)
 

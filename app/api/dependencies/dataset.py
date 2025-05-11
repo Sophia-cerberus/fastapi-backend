@@ -8,7 +8,7 @@ from app.api.models import Dataset, DatasetCreate, DatasetUpdate, TeamUserJoin, 
 from app.api.utils.models import StatusTypes
 from app.core.config import settings
 
-from .team import CurrentTeamAndUser
+from .common import CurrentTeamAndUser
 from .session import SessionDep
 
 

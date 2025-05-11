@@ -84,7 +84,7 @@ services:
     image: postgres:15
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 'P@ssw0rd2024#Secure'
+      POSTGRES_PASSWORD: postgres
       POSTGRES_DB: postgres
       POSTGRES_MULTIPLE_DATABASES: self_agent_milvus,self_agent_langfuse
     volumes:

@@ -8,11 +8,13 @@ from sqlalchemy.sql import func
 class BaseModel(SQLModel):
     __abstract__ = True
     
-    created_at: datetime = Field(
+    created_at: datetime | None = Field(
+        default_factory=datetime.now,  # 添加Python级别默认值
         sa_column_kwargs={"server_default": func.now()},
         nullable=False,
     )
-    updated_at: datetime = Field(
+    updated_at: datetime | None = Field(
+        default_factory=datetime.now,  # 添加Python级别默认值
         sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()},
         nullable=False,
     )

@@ -9,8 +9,9 @@ from app.api.dependencies import (
     CurrentUser,
     SessionDep,
     CurrentTeamAndUser,
-    InstanceStatementUsers,
+    InstanceStatementUser,
     CurrentInstanceUser,
+    CheckUserUpdatePermissionUser,
 )
 from app.core.config import settings
 from app.core.security import get_password_hash, verify_password
@@ -43,7 +44,7 @@ router = APIRouter(
 @router.get("/", response_model=Page[UserOut])
 async def read_users(
     session: SessionDep, 
-    statement: InstanceStatementUsers,
+    statement: InstanceStatementUser,
     user_filter: UserFilter = FilterDepends(UserFilter)
 ) -> Any:
     """
@@ -254,25 +255,23 @@ async def update_user(
     session: SessionDep,
     user_id: uuid.UUID,
     user_in: UserUpdate,
-    user: CheckUserUpdatePermission,
+    user: CheckUserUpdatePermissionUser,
 ) -> Any:
     """
     Update a user.
     """
-    user = await session.get(User, user_id)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, 
-            detail="The user with this id does not exist in the system"
-        )
-    
     if user_in.email:
-        statement = select(User).where(User.email == user_in.email)
+        statement = select(User).where(
+            or_(
+                User.email == user_in.email,
+                User.phone == user_in.phone
+            )
+        )
         existing_user = await session.scalar(statement)
         if existing_user and existing_user.id != user_id:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT, 
-                detail="User with this email already exists"
+                detail="User with this email or phone already exists"
             )
 
     update_data = {}
@@ -288,21 +287,12 @@ async def update_user(
 
 @router.delete("/{user_id}")
 async def delete_user(
-    session: SessionDep, user: CurrentInstanceUser, current_user: CurrentUser
+    session: SessionDep, 
+    user: CheckUserUpdatePermissionUser,
 ) -> Message:
     """
     Delete a user.
     """
-
-    if user != current_user and not current_user.is_superuser:
-        raise HTTPException(
-            status_code=403, detail="The user doesn't have enough privileges"
-        )
-    if user == current_user:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, 
-            detail="Super users are not allowed to delete themselves"
-        )
     await session.delete(user)
     await session.commit()
     return Message(message="User deleted successfully")

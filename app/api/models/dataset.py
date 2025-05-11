@@ -11,7 +11,7 @@ class DatasetBase(BaseModel):
     name: str = Field(index=True)
     description: str | None = Field(default=None, max_length=256)
     status: StatusTypes = Field(default=StatusTypes.ENABLE)
-    metadata: dict[Any, Any] = Field(default_factory=dict, sa_column=Column(JSONB))
+    cmetadata: dict[Any, Any] = Field(default_factory=dict, sa_column=Column(JSONB))
 
 
 class DatasetCreate(DatasetBase):
@@ -22,7 +22,7 @@ class DatasetUpdate(DatasetBase):
     name: str | None = None
     description: str | None = None
     status: StatusTypes | None = None
-    metadata: dict[Any, Any] | None = None
+    cmetadata: dict[Any, Any] | None = None
     parent_id: uuid.UUID | None = None
     remark: str | None = None
 
@@ -44,16 +44,19 @@ class Dataset(DatasetBase, table=True):
 
     __table_args__ = (
         Index(
-            "ix_dataset_metadata_gin",
-            "metadata",
+            "ix_dataset_cmetadata_gin",
+            "cmetadata",
             postgresql_using="gin",
-            postgresql_ops={"metadata": "jsonb_path_ops"},
+            postgresql_ops={"cmetadata": "jsonb_path_ops"},
         ),
     )
 
 
 class DatasetOut(DatasetBase):
     id: uuid.UUID
+    name: str
+    description: str | None
+    status: StatusTypes
     team_id: uuid.UUID
     owner_id: uuid.UUID
     parent_id: uuid.UUID | None

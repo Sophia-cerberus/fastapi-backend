@@ -2,13 +2,15 @@ from datetime import datetime
 from typing import Any
 import uuid
 
-from sqlmodel import Field, Index
+from sqlmodel import Field, Index, Column
+from sqlalchemy.dialects.postgresql import JSONB
+
 from app.api.utils.models import BaseModel
 
 
 class EmbeddingBase(BaseModel):
     document: str | None = Field(default=None)
-    cmetadata: dict[Any, Any] = Field(default_factory=dict)
+    cmetadata: dict[Any, Any] = Field(default_factory=dict, sa_column=Column(JSONB))
 
 
 class EmbeddingCreate(EmbeddingBase):
@@ -36,7 +38,7 @@ class Embedding(EmbeddingBase, table=True):
 
     __table_args__ = (
         Index(
-            "ix_metadata_gin",
+            "ix_cmetadata_gin",
             "cmetadata",
             postgresql_using="gin",
             postgresql_ops={"cmetadata": "jsonb_path_ops"},

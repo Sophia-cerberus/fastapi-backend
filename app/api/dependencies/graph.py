@@ -1,4 +1,3 @@
-
 from typing import Annotated, Union
 import uuid
 from fastapi import Depends, HTTPException, status
@@ -9,7 +8,7 @@ from app.api.models import Graph, GraphCreate, GraphUpdate, TeamUserJoin, RoleTy
 from app.api.utils.models import StatusTypes
 from app.core.config import settings
 
-from .team import CurrentTeamAndUser
+from .common import CurrentTeamAndUser
 from .session import SessionDep
 
 

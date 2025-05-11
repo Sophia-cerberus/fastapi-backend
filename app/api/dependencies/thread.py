@@ -9,7 +9,7 @@ from app.api.models import Thread, TeamUserJoin, RoleTypes, Team
 from app.api.utils.models import StatusTypes
 
 from .session import SessionDep
-from .team import CurrentTeamAndUser
+from .common import CurrentTeamAndUser
 
 
 async def instance_statement(current_team_and_user: CurrentTeamAndUser) ->  SelectOfScalar[Thread]:

@@ -6,9 +6,9 @@ from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from fastapi.responses import HTMLResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic_core import ValidationError
-from sqlmodel import select
+from sqlmodel import or_, select
 
-from app.api.dependencies import CurrentUser, SessionDep, get_current_active_superuser
+from app.api.dependencies import CurrentUser, SessionDep, CurrentActiveSuperuser
 from app.api.utils.models import StatusTypes
 from app.core.config import settings
 from app.utils.logger import get_logger
@@ -42,7 +42,12 @@ async def login_token(
     """
     OAuth2 compatible token login, get an access token for future requests
     """
-    statement = select(User).where(User.email == form_data.username)
+    statement = select(User).where(
+        or_(
+            User.email == form_data.username,
+            User.phone == form_data.username
+        )
+    )
     user = await session.scalar(statement)
 
     if not (user and verify_password(form_data.password, user.hashed_password)):
@@ -144,7 +149,12 @@ async def reset_password(session: SessionDep, body: NewPassword) -> Message:
             detail="Invalid token"
         )
     
-    statement = select(User).where(User.email == email)
+    statement = select(User).where(
+        or_(
+            User.email == email,
+            User.phone == email
+        )
+    )
 
     if not (user := await session.scalar(statement)):
         raise HTTPException(
@@ -167,7 +177,7 @@ async def reset_password(session: SessionDep, body: NewPassword) -> Message:
 
 @router.post(
     "/password-recovery-html-content/{email}",
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(CurrentActiveSuperuser)],
     response_class=HTMLResponse,
 )
 async def recover_password_html_content(email: str, session: SessionDep) -> Any:
