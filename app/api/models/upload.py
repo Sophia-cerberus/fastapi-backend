@@ -2,7 +2,7 @@ from datetime import datetime
 import uuid
 
 from sqlmodel import Field
-from app.api.utils.models import BaseModel
+from app.api.utils.models import BaseModel, StatusTypes
 
 
 class UploadBase(BaseModel):
@@ -10,15 +10,11 @@ class UploadBase(BaseModel):
 
 
 class UploadCreate(UploadBase):
-    chunk_size: int
-    chunk_overlap: int
     dataset_id: uuid.UUID
 
 
 class UploadUpdate(UploadBase):
     description: str | None = None
-    chunk_size: int | None = None
-    chunk_overlap: int | None = None
     update_at: datetime
     remark: str | None = None
 
@@ -36,9 +32,7 @@ class Upload(UploadBase, table=True):
     team_id: uuid.UUID | None = Field(default=None, foreign_key="team.id", nullable=False)
     dataset_id: uuid.UUID = Field(foreign_key="dataset.id", nullable=False)
 
-    status: bool = Field(default=False, nullable=False)
-    chunk_size: int = Field(nullable=False)
-    chunk_overlap: int = Field(nullable=False)
+    status: StatusTypes = Field(default=StatusTypes.ENABLE)
     file_type: str = Field(nullable=False)
     file_path: str = Field(nullable=False)
     file_size: float = Field(nullable=False)
@@ -52,5 +46,3 @@ class UploadOut(UploadBase):
     file_type: str
     file_path: str
     file_size: float
-    chunk_size: int
-    chunk_overlap: int

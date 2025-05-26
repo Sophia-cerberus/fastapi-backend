@@ -12,3 +12,4 @@ htmlcov
 .data
 logs
 volumes
+.env

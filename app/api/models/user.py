@@ -51,7 +51,6 @@ class UserBase(BaseModel):
     is_tenant_admin: bool = False
     full_name: str | None = None
     language: str = Field(default="en-US")
-    dictionaries: uuid.UUID | None = Field(default=None, foreign_key="dictionaries.id")
 
     # New business-related fields
     corporate_name: str | None = Field(default=None)

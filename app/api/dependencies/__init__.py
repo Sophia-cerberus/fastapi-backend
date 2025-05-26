@@ -16,7 +16,7 @@ from .graph import (
 )
 from .apikey import (
     CurrentInstance as CurrentInstanceApiKey,
-    InstanceStatement as InstanceStatementApiKey
+    InstanceStatement as InstanceStatementApiKey,
 )
 from .model import (
     CurrentInstance as CurrentInstanceModel,

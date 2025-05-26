@@ -4,7 +4,7 @@ from fastapi import APIRouter
 
 from app.core.security import generate_apikey, generate_short_apikey, get_password_hash
 
-from app.api.models import ApiKey, ApiKeyCreate, ApiKeyOut, ApiKeyOutPublic, Message
+from app.api.models import ApiKey, ApiKeyCreate, ApiKeyOut, ApiKeyOutPublic, Message, ApiKeyUpdate
 from app.api.dependencies import SessionDep, CurrentTeamAndUser, CurrentInstanceApiKey, InstanceStatementApiKey
 
 from fastapi_pagination.ext.sqlmodel import paginate
@@ -54,6 +54,22 @@ async def create_api_key(
     await session.refresh(apikey)
     
     return ApiKeyOut(key=key, **apikey.model_dump())
+
+
+@router.put("/", response_model=ApiKeyOut)
+async def update_api_key(
+    session: SessionDep,
+    apikey: CurrentInstanceApiKey,
+    apikey_in: ApiKeyUpdate,
+) -> Any:
+    """
+    Update ApiKey by ID.
+    """        
+    apikey.sqlmodel_update(apikey_in)
+    session.add(apikey)
+    await session.commit()
+    await session.refresh(apikey)
+    return apikey
 
 
 @router.delete("/{id}")

@@ -1,5 +1,5 @@
 from .apikey import (
-    ApiKey, ApiKeyBase, ApiKeyCreate, ApiKeyOut, ApiKeyOutPublic
+    ApiKey, ApiKeyBase, ApiKeyCreate, ApiKeyOut, ApiKeyOutPublic, ApiKeyUpdate
 )
 from .checkpoint import (
     Checkpoint, CheckpointBlobs, CheckpointOut, Write

@@ -12,14 +12,12 @@ class DictionaryBase(BaseModel):
 
 # Properties to receive via API on creation
 class DictionaryCreate(DictionaryBase):
-    pass
+    dataset_id: uuid.UUID = Field(foreign_key="dataset.id")
 
 
 # Properties to receive via API on update, all are optional
-class DictionaryUpdate(SQLModel):
-    name: str | None = None
-    status: StatusTypes | None = None
-    description: str | None = None
+class DictionaryUpdate(DictionaryBase):
+    pass
 
 
 # Database model, database table inferred from class name
