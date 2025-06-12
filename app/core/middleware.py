@@ -31,7 +31,7 @@ class CoreMiddleware(BaseHTTPMiddleware):
         response.headers["X-Request-IP-Host"] = client_ip
 
         extra = {
-            "path_params": str(request.path_params, ensure_ascii=False),
+            "path_params": str(request.path_params),
             "query_params": str(request.query_params),
             "method": request.method,
             "url": request.url.hostname,

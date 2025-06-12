@@ -1,4 +1,5 @@
 import os
+import secrets
 import warnings
 from typing import Annotated, Any, Literal
 from pydantic import (
@@ -31,8 +32,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
     API_V1_STR: str = "/api/v1"
-    # SECRET_KEY: str = secrets.token_urlsafe(32)
-    SECRET_KEY: str = "1"
+    SECRET_KEY: str = secrets.token_urlsafe(32)
 
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
